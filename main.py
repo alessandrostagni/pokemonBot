@@ -1,9 +1,14 @@
-from ahk import AHK
+import os
 
+from ahk import AHK
 import numpy as np
+import random
+import tensorflow as tf
+import time
 import tqdm
 
 from DQNAgent import DQNAgent
+from DQNAgent import BlobEnv
 
 '''
 ahk = AHK()
@@ -11,6 +16,15 @@ ahk = AHK()
 with open("C:\\Users\\darth\\Gameboy\\michele.ahk") as f:
     ahk.run_script(f.read())
 '''
+
+DISCOUNT = 0.99
+REPLAY_MEMORY_SIZE = 50_000  # How many last steps to keep for model training
+MIN_REPLAY_MEMORY_SIZE = 1_000  # Minimum number of steps in a memory to start training
+MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
+UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
+MODEL_NAME = '2x256'
+MIN_REWARD = -200  # For model save
+MEMORY_FRACTION = 0.20
 
 # Environment settings
 EPISODES = 20_000
@@ -20,9 +34,31 @@ epsilon = 1  # not a constant, going to be decayed
 EPSILON_DECAY = 0.99975
 MIN_EPSILON = 0.001
 
+#  Stats settings
+AGGREGATE_STATS_EVERY = 50  # episodes
+SHOW_PREVIEW = False
+
 m = DQNAgent().create_model()
 
 agent = DQNAgent()
+
+env = BlobEnv()
+
+# For stats
+ep_rewards = [-200]
+
+# For more repetitive results
+random.seed(1)
+np.random.seed(1)
+tf.set_random_seed(1)
+
+# Memory fraction, used mostly when trai8ning multiple agents
+#gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
+#backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
+
+# Create models folder
+if not os.path.isdir('models'):
+    os.makedirs('models')
 
 # Iterate over episodes
 for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
