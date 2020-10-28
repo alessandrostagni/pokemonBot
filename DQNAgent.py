@@ -107,6 +107,10 @@ class DQNAgent:
             self.target_model.set_weights(self.model.get_weights())
             self.target_update_counter = 0
 
+    # Queries main network for Q values given current observation space (environment state)
+    def get_qs(self, state):
+        return self.model.predict(np.array(state).reshape(-1, *state.shape) / 255)[0]
+
 
 class ModifiedTensorBoard(TensorBoard):
 
@@ -138,10 +142,6 @@ class ModifiedTensorBoard(TensorBoard):
     # Creates writer, writes custom metrics and closes writer
     def update_stats(self, **stats):
         self._write_logs(stats, self.step)
-
-    # Queries main network for Q values given current observation space (environment state)
-    def get_qs(self, state):
-        return self.model.predict(np.array(state).reshape(-1, *state.shape) / 255)[0]
 
 
 class Blob:
