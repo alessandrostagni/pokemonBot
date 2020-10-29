@@ -5,7 +5,7 @@ import numpy as np
 import random
 import tensorflow as tf
 import time
-import tqdm
+from tqdm import tqdm
 
 from DQNAgent import DQNAgent
 from DQNAgent import BlobEnv
@@ -20,10 +20,10 @@ with open("C:\\Users\\darth\\Gameboy\\michele.ahk") as f:
 DISCOUNT = 0.99
 REPLAY_MEMORY_SIZE = 50_000  # How many last steps to keep for model training
 MIN_REPLAY_MEMORY_SIZE = 1_000  # Minimum number of steps in a memory to start training
-MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
+MINIBATCH_SIZE = 32  # How many steps (samples) to use for training
 UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
-MODEL_NAME = '2x256'
-MIN_REWARD = -200  # For model save
+MODEL_NAME = 'EAZY'
+MIN_REWARD = -20  # For model save
 MEMORY_FRACTION = 0.20
 
 # Environment settings
@@ -50,8 +50,7 @@ ep_rewards = [-200]
 # For more repetitive results
 random.seed(1)
 np.random.seed(1)
-tf.set_random_seed(1)
-
+tf.random.set_seed(1)
 # Memory fraction, used mostly when trai8ning multiple agents
 #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
 #backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
@@ -83,15 +82,18 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             action = np.argmax(agent.get_qs(current_state))
         else:
             # Get random action
-            action = np.random.randint(0, env.ACTION_SPACE_SIZE)
-
+            action = np.random.randint(1, env.ACTION_SPACE_SIZE + 1)
+        print('Current state', current_state)
+        print('Action:', action)
         new_state, reward, done = env.step(action)
-
+        print(new_state)
+        print(reward)
+        print(done)
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward
 
-        if SHOW_PREVIEW and not episode % AGGREGATE_STATS_EVERY:
-            env.render()
+        # if SHOW_PREVIEW and not episode % AGGREGATE_STATS_EVERY:
+        #   env.render()
 
         # Every step we update replay memory and train main network
         agent.update_replay_memory((current_state, action, reward, new_state, done))

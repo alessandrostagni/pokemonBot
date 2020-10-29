@@ -1,3 +1,4 @@
+import os
 import random
 import time
 
@@ -12,16 +13,15 @@ from keras.optimizers import Adam
 from collections import deque
 from keras.callbacks import TensorBoard
 
-ACTION_SPACE_SIZE = 20
+ACTION_SPACE_SIZE = 4
 REPLAY_MEMORY_SIZE = 50_000
 MIN_REPLAY_MEMORY_SIZE = 1_000
-MODEL_NAME = "256x2"
+MODEL_NAME = "Yoyo"
 DISCOUNT = 0.99
 REPLAY_MEMORY_SIZE = 50_000  # How many last steps to keep for model training
 MIN_REPLAY_MEMORY_SIZE = 1_000  # Minimum number of steps in a memory to start training
 MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
 UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
-
 
 class DQNAgent:
 
@@ -31,7 +31,7 @@ class DQNAgent:
 
         # Target network
         self.target_model = self.create_model()
-        self.target_model.set_weights(self.model.get_weights())
+        #self.target_model.set_weights(self.model.get_weights())
 
         # An array with last n steps for training
         self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
@@ -111,7 +111,7 @@ class DQNAgent:
 
     # Queries main network for Q values given current observation space (environment state)
     def get_qs(self, state):
-        return self.model.predict(np.array(state).reshape(-1, *state.shape) / 255)[0]
+        return self.model.predict(np.array(state))[0]
 
 
 class ModifiedTensorBoard(TensorBoard):
@@ -120,7 +120,7 @@ class ModifiedTensorBoard(TensorBoard):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.step = 1
-        self.writer = tf.summary.FileWriter(self.log_dir)
+        self.writer = tf.summary.create_file_writer(self.log_dir)
 
     # Overriding this method to stop creating default log writer
     def set_model(self, model):
@@ -144,6 +144,13 @@ class ModifiedTensorBoard(TensorBoard):
     # Creates writer, writes custom metrics and closes writer
     def update_stats(self, **stats):
         self._write_logs(stats, self.step)
+
+    def _write_logs(self, logs, index):
+        with self.writer.as_default():
+            for name, value in logs.items():
+                tf.summary.scalar(name, value, step=index)
+                self.step += 1
+                self.writer.flush()
 
 '''
 class Blob:
@@ -227,7 +234,7 @@ class BlobEnv:
     ENEMY_PENALTY = 300
     FOOD_REWARD = 25
     OBSERVATION_SPACE_VALUES = (SIZE, SIZE, 3)  # 4
-    ACTION_SPACE_SIZE = 9
+    ACTION_SPACE_SIZE = 4
     PLAYER_N = 1  # player key in dict
     FOOD_N = 2  # food key in dict
     ENEMY_N = 3  # enemy key in dict
@@ -251,10 +258,10 @@ class BlobEnv:
         '''
         self.episode_step = 0
         self.ahk.run_script(open('ahk_scripts/get_state.ahk').read())
-        pos_x = open('states/X.txt').read()
-        pos_y = open('states/Y.txt').read()
-        new_observation = [pos_x, pos_y]
-        map = open('states/Map.txt').read()
+        pos_x = open('states/AX.txt').read()
+        pos_y = open('states/AY.txt').read()
+        observation = [float(pos_x), float(pos_y)]
+        map = open('states/AMap.txt').read()
         self.ahk.run_script(open('ahk_scripts/reset.ahk').read())
         '''
         if self.RETURN_IMAGES:
@@ -263,8 +270,6 @@ class BlobEnv:
             observation = (self.player-self.food) + (self.player-self.enemy)
         return observation
         '''
-
-        observation = [pos_x, pos_y]
         return observation
 
 
@@ -298,14 +303,16 @@ class BlobEnv:
         '''''
         args = action
         self.ahk.run_script(f'action := {action}\n' + open('ahk_scripts/step.ahk').read())
-        pos_x = open('states/X.txt').read()
-        pos_y = open('states/Y.txt').read()
-        new_observation = [pos_x, pos_y]
-        map_id = open('states/Map.txt').read()
-        if map_id == 26 or self.episode_step >= 200:
+        pos_x = open('states/BX.txt').read()
+        pos_y = open('states/BY.txt').read()
+        new_observation = [float(pos_x), float(pos_y)]
+        map_id = int(open('states/BMap.txt').read())
+        if map_id == 25 or self.episode_step >= 200:
             reward = 0
             done = True
-        reward = -0.1
+        else:
+            done = False
+            reward = -0.1
 
         return new_observation, reward, done
 

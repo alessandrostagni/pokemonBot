@@ -1,5 +1,6 @@
 # Custom
 states/
+logs/
 .idea
 0.14
 keras-py38
