@@ -4,6 +4,8 @@ import time
 import tensorflow as tf
 import numpy as np
 
+from ahk import AHK
+
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
@@ -143,7 +145,7 @@ class ModifiedTensorBoard(TensorBoard):
     def update_stats(self, **stats):
         self._write_logs(stats, self.step)
 
-
+'''
 class Blob:
     def __init__(self, size):
         self.size = size
@@ -160,9 +162,8 @@ class Blob:
         return self.x == other.x and self.y == other.y
 
     def action(self, choice):
-        '''
         Gives us 9 total movement options. (0,1,2,3,4,5,6,7,8)
-        '''
+
         if choice == 0:
             self.move(x=1, y=1)
         elif choice == 1:
@@ -184,6 +185,15 @@ class Blob:
 
         elif choice == 8:
             self.move(x=0, y=0)
+        
+        if choice == 0:
+            self.move(x=1, y=1)
+        elif choice == 1:
+            self.move(x=-1, y=-1)
+        elif choice == 2:
+            self.move(x=-1, y=1)
+        elif choice == 3:
+            self.move(x=1, y=-1)
 
     def move(self, x=False, y=False):
 
@@ -208,6 +218,7 @@ class Blob:
             self.y = 0
         elif self.y > self.size-1:
             self.y = self.size-1
+'''
 
 class BlobEnv:
     SIZE = 10
@@ -225,7 +236,11 @@ class BlobEnv:
          2: (0, 255, 0),
          3: (0, 0, 255)}
 
+    def __init__(self):
+        self.ahk = AHK()
+
     def reset(self):
+        '''
         self.player = Blob(self.SIZE)
         self.food = Blob(self.SIZE)
         while self.food == self.player:
@@ -233,24 +248,38 @@ class BlobEnv:
         self.enemy = Blob(self.SIZE)
         while self.enemy == self.player or self.enemy == self.food:
             self.enemy = Blob(self.SIZE)
-
+        '''
         self.episode_step = 0
-
+        self.ahk.run_script(open('ahk_scripts/get_state.ahk').read())
+        pos_x = open('states/X.txt').read()
+        pos_y = open('states/Y.txt').read()
+        new_observation = [pos_x, pos_y]
+        map = open('states/Map.txt').read()
+        self.ahk.run_script(open('ahk_scripts/reset.ahk').read())
+        '''
         if self.RETURN_IMAGES:
             observation = np.array(self.get_image())
         else:
             observation = (self.player-self.food) + (self.player-self.enemy)
         return observation
+        '''
+
+        observation = [pos_x, pos_y]
+        return observation
+
+
 
     def step(self, action):
         self.episode_step += 1
-        self.player.action(action)
+
+        # Step will take care of moving as well
+        # self.player.action(action)
 
         #### MAYBE ###
         #enemy.move()
         #food.move()
         ##############
-
+        ''''
         if self.RETURN_IMAGES:
             new_observation = np.array(self.get_image())
         else:
@@ -262,20 +291,34 @@ class BlobEnv:
             reward = self.FOOD_REWARD
         else:
             reward = -self.MOVE_PENALTY
-
+        
         done = False
         if reward == self.FOOD_REWARD or reward == -self.ENEMY_PENALTY or self.episode_step >= 200:
             done = True
+        '''''
+        args = action
+        self.ahk.run_script(f'action := {action}\n' + open('ahk_scripts/step.ahk').read())
+        pos_x = open('states/X.txt').read()
+        pos_y = open('states/Y.txt').read()
+        new_observation = [pos_x, pos_y]
+        map_id = open('states/Map.txt').read()
+        if map_id == 26 or self.episode_step >= 200:
+            reward = 0
+            done = True
+        reward = -0.1
 
         return new_observation, reward, done
 
+    '''
     def render(self):
         img = self.get_image()
         img = img.resize((300, 300))  # resizing so we can see our agent in all its glory.
         cv2.imshow("image", np.array(img))  # show it!
         cv2.waitKey(1)
+    '''
 
     # FOR CNN #
+    '''
     def get_image(self):
         env = np.zeros((self.SIZE, self.SIZE, 3), dtype=np.uint8)  # starts an rbg of our size
         env[self.food.x][self.food.y] = self.d[self.FOOD_N]  # sets the food location tile to green color
@@ -283,3 +326,4 @@ class BlobEnv:
         env[self.player.x][self.player.y] = self.d[self.PLAYER_N]  # sets the player tile to blue
         img = Image.fromarray(env, 'RGB')  # reading to rgb. Apparently. Even tho color definitions are bgr. ???
         return img
+    '''
