@@ -1,7 +1,9 @@
 # Custom
+models_simulation/
 states/
 logs/
 .idea
+graphs
 0.14
 keras-py38
 

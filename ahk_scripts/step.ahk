@@ -9,44 +9,54 @@ ConvertBase(InputBase, OutputBase, nptr)    ; Base 2 - 36
     return s
 }
 
-
-CloseWindow() {
-	Send, {LAlt Down}
-	Send, {F4}
-	Send, {LAlt Up}
+Save(label, location) {
+	Send, {Enter}
+	Sleep, 100
+	Send, {Raw} %location%
+	Sleep, 100
+	Send, {Tab}
+	Sleep, 100
+	Send, {1}
+	Sleep, 100
+	Send, {Tab}
+	Sleep, 100
+	Send, {Enter}
+	Sleep, 800
+	Send, {Raw} %label%
+	Sleep, 100
+	Send, {Enter}
 }
 
 OpenMemoryViewer() {
 	Send, {LAlt Down}
+	Sleep, 100
 	Send, {t}
+	Sleep, 100
 	Send, {LAlt Up}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Down}
-	Send, {Enter}
-}
-
-Save(label, location) {
-	Send, {Enter}
-	Send, {Raw} %location%
-	Send, {Tab}
-	Send, {1}
-	Send, {Tab}
-	Send, {Enter}
-	Sleep, 800
-	Send, {Raw} %label%
+	Sleep, 100
 	Send, {Enter}
 }
 
 SaveState(label) {
-    OpenMemoryViewer()
-    WinActivate, Memory viewer ahk_class #32770
-    Sleep, 800
-    Send, {Shift Down}
-    Send, {Tab}
-    Send, {Tab}
-    Send, {Shift Up}
+    ;OpenMemoryViewer()
+    WinActivate, Memory viewer
+    ;Sleep, 100
+    ;Send, {Shift Down}
+    ;Sleep, 100
+    ;Send, {Tab}
+    ;Sleep, 100
+    ;Send, {Tab}
+    ;Sleep, 100
+    ;Send, {Shift Up}
+    ;Sleep, 100
 
     WinActivate, Enter address and size ahk_class #32770
     Sleep, 400
@@ -63,9 +73,11 @@ SaveState(label) {
     file := FileOpen("C:\Users\darth\Gameboy\states\" . label . "X.DMP", "r")
     X := file.read()
     file.close()
+    Sleep, 100
     file := FileOpen("C:\Users\darth\Gameboy\states\" . label . "Y.DMP", "r")
     Y := file.read()
     file.close()
+    Sleep, 100
     file := FileOpen("C:\Users\darth\Gameboy\states\" . label . "Map.DMP", "r")
     Map := file.read()
     file.close()
@@ -77,25 +89,33 @@ SaveState(label) {
     file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "X.txt", "w")
     file.write(X)
     file.close()
+    Sleep, 100
     file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "Y.txt", "w")
     file.write(Y)
     file.close()
+    Sleep, 100
     file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "Map.txt", "w")
     file.write(map)
     file.close()
-    CloseWindow()
+
+    Sleep, 100
+    WinActivate Memory viewer
+    ;Sleep, 100
+    ;Send, {Esc}
+    Sleep, 100
+    WinActivate VisualBoyAdvance
 }
 
 Move(action) {
-    Key := 1
+    Key := 0
     Switch action {
-        Case 1:
+        Case 0:
             Key = Right
-        Case 2:
+        Case 1:
             Key = Left
-        Case 3:
+        Case 2:
             Key = Down
-        Case 4:
+        Case 3:
             Key = Up
     }
     Send, {%Key% Down}
@@ -103,7 +123,7 @@ Move(action) {
 	Send, {%Key% Up}
 }
 
-WinActivate ahk_exe VisualBoyAdvance.exe
+WinActivate VisualBoyAdvance
 Sleep, 100
 SaveState("A")
 Sleep, 100
@@ -111,10 +131,9 @@ Move(action)
 Sleep, 100
 SaveState("B")
 Sleep, 100
-WinMinimize ahk_exe VisualBoyAdvance.exe
 ExitApp
 Return
 
-Escape::
+F3::
 ExitApp
 Return

@@ -9,30 +9,35 @@ ConvertBase(InputBase, OutputBase, nptr)    ; Base 2 - 36
     return s
 }
 
-
-CloseWindow() {
-	Send, {LAlt Down}
-	Send, {F4}
-	Send, {LAlt Up}
-}
-
 OpenMemoryViewer() {
 	Send, {LAlt Down}
+	Sleep, 100
 	Send, {t}
+	Sleep, 100
 	Send, {LAlt Up}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Down}
+	Sleep, 100
 	Send, {Enter}
 }
 
 Save(label, location) {
 	Send, {Enter}
+	Sleep, 100
 	Send, {Raw} %location%
+	Sleep, 100
 	Send, {Tab}
+	Sleep, 100
 	Send, {1}
+	Sleep, 100
 	Send, {Tab}
+	Sleep, 100
 	Send, {Enter}
 	Sleep, 800
 	Send, {Raw} %label%
@@ -40,14 +45,15 @@ Save(label, location) {
 }
 
 SaveState(label) {
-    OpenMemoryViewer()
-    WinActivate, Memory viewer ahk_class #32770
-    Sleep, 800
-    Send, {Shift Down}
-    Send, {Tab}
-    Send, {Tab}
-    Send, {Shift Up}
-
+    ;OpenMemoryViewer()
+    WinActivate, Memory viewer
+    ;Send, {Shift Down}
+    ;Sleep, 100
+    ;Send, {Tab}
+    ;Sleep, 100
+    ;Send, {Tab}
+    ;Send, {Shift Up}
+    Sleep, 100
     WinActivate, Enter address and size ahk_class #32770
     Sleep, 400
     Save(label . "Y", "D361")
@@ -83,8 +89,15 @@ SaveState(label) {
     file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "Map.txt", "w")
     file.write(map)
     file.close()
-    CloseWindow()
+
+    Sleep, 100
+    WinActivate Memory viewer
+    ;Sleep, 100
+    ;Send, {Esc}
+    ;Sleep, 100
+    WinActivate VisualBoyAdvance
 }
+
 
 Move(action) {
     Key := 1
@@ -102,15 +115,13 @@ Move(action) {
 	Sleep, 50
 	Send, {%Key% Up}
 }
-
-WinActivate ahk_exe VisualBoyAdvance.exe
+WinActivate VisualBoyAdvance
 Sleep, 100
 SaveState("A")
 Sleep, 100
-WinMinimize ahk_exe VisualBoyAdvance.exe
 ExitApp
 Return
 
-Escape::
+F3::
 ExitApp
 Return

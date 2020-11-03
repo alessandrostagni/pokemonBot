@@ -7,7 +7,7 @@ import numpy as np
 
 from ahk import AHK
 
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.optimizers import Adam
 from collections import deque
@@ -37,7 +37,7 @@ class DQNAgent:
         self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
 
         # Custom tensorboard object
-        self.tensorboard = ModifiedTensorBoard(log_dir="logs/{}-{}".format(MODEL_NAME, int(time.time())))
+        #self.tensorboard = ModifiedTensorBoard(log_dir="logs/{}-{}".format(MODEL_NAME, int(time.time())))
 
         # Used to count when to update target network with main network's weights
         self.target_update_counter = 0
@@ -45,12 +45,15 @@ class DQNAgent:
     def create_model(self):
         model = Sequential()
 
-        model.add(Dense(8))
-        model.add(Dense(8))
+        model.add(Dense(64, input_shape=(2,)))
+        model.add(Dense(64))
 
         model.add(Dense(ACTION_SPACE_SIZE, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
         return model
+
+    def load_model(self, model_path):
+        self.model = load_model(model_path)
 
     # Adds step's data to a memory replay array
     # (observation space, action, reward, new observation space, done)
@@ -66,12 +69,12 @@ class DQNAgent:
         minibatch = random.sample(self.replay_memory, MINIBATCH_SIZE)
 
         # Get current states from minibatch, then query NN model for Q values
-        current_states = np.array([transition[0] for transition in minibatch]) / 255
+        current_states = np.array([transition[0] for transition in minibatch])
         current_qs_list = self.model.predict(current_states)
 
         # Get future states from minibatch, then query NN model for Q values
         # When using target network, query it, otherwise main network should be queried
-        new_current_states = np.array([transition[3] for transition in minibatch]) / 255
+        new_current_states = np.array([transition[3] for transition in minibatch])
         future_qs_list = self.target_model.predict(new_current_states)
 
         X = []
@@ -97,8 +100,7 @@ class DQNAgent:
             y.append(current_qs)
 
         # Fit on all samples as one batch, log only on terminal state
-        self.model.fit(np.array(X) / 255, np.array(y), batch_size=MINIBATCH_SIZE, verbose=0, shuffle=False,
-                       callbacks=[self.tensorboard] if terminal_state else None)
+        self.model.fit(np.array(X), np.array(y), batch_size=MINIBATCH_SIZE, verbose=0, shuffle=False)
 
         # Update target network counter every episode
         if terminal_state:
@@ -111,9 +113,13 @@ class DQNAgent:
 
     # Queries main network for Q values given current observation space (environment state)
     def get_qs(self, state):
-        return self.model.predict(np.array(state))[0]
+        input = np.array(state).reshape(-1, len(state))
+        print('Input:', input)
+        prediction = self.model.predict(input)[0]
+        print('Prediction:', prediction)
+        return prediction
 
-
+'''
 class ModifiedTensorBoard(TensorBoard):
 
     # Overriding init to set initial step and writer (we want one log file for all .fit() calls)
@@ -151,7 +157,7 @@ class ModifiedTensorBoard(TensorBoard):
                 tf.summary.scalar(name, value, step=index)
                 self.step += 1
                 self.writer.flush()
-
+'''
 '''
 class Blob:
     def __init__(self, size):
@@ -245,6 +251,8 @@ class BlobEnv:
 
     def __init__(self):
         self.ahk = AHK()
+        self.location_memory = set()
+        self.episode_step = 0
 
     def reset(self):
         '''
@@ -257,11 +265,14 @@ class BlobEnv:
             self.enemy = Blob(self.SIZE)
         '''
         self.episode_step = 0
+        self.location_memory = set()
         self.ahk.run_script(open('ahk_scripts/get_state.ahk').read())
         pos_x = open('states/AX.txt').read()
         pos_y = open('states/AY.txt').read()
-        observation = [float(pos_x), float(pos_y)]
+        observation = (float(pos_x), float(pos_y))
         map = open('states/AMap.txt').read()
+        print('Current map id:', map)
+        self.location_memory.add(observation)
         self.ahk.run_script(open('ahk_scripts/reset.ahk').read())
         '''
         if self.RETURN_IMAGES:
@@ -274,7 +285,7 @@ class BlobEnv:
 
 
 
-    def step(self, action):
+    def step(self, current_state, action):
         self.episode_step += 1
 
         # Step will take care of moving as well
@@ -301,18 +312,25 @@ class BlobEnv:
         if reward == self.FOOD_REWARD or reward == -self.ENEMY_PENALTY or self.episode_step >= 200:
             done = True
         '''''
-        args = action
         self.ahk.run_script(f'action := {action}\n' + open('ahk_scripts/step.ahk').read())
         pos_x = open('states/BX.txt').read()
         pos_y = open('states/BY.txt').read()
-        new_observation = [float(pos_x), float(pos_y)]
+        new_observation = (float(pos_x), float(pos_y))
         map_id = int(open('states/BMap.txt').read())
+        print('Map id after action:', map_id)
         if map_id == 25 or self.episode_step >= 200:
             reward = 0
             done = True
+        elif new_observation == current_state:
+            reward = -1.0
+            done = False
+        elif new_observation not in self.location_memory:
+            reward = 0.3
+            self.location_memory.add(new_observation)
+            done = False
         else:
             done = False
-            reward = -0.1
+            reward = -0.2
 
         return new_observation, reward, done
 
