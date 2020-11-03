@@ -14,6 +14,7 @@ from DQNAgent_battle import BlobEnv
 
 # Environment settings
 EPISODES = 50000
+N_BATTLES = 5
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
@@ -30,7 +31,7 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 
 m = DQNAgent().create_model()
 agent = DQNAgent()
-env = BlobEnv()
+env = BlobEnv(N_BATTLES)
 
 # For stats
 ep_rewards = [-200]
@@ -59,7 +60,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
     # Reset environment and get initial state
     current_state = env.reset()
-    path = [(current_state[0], current_state[1], None)]
+    stop
 
 # Reset flag and start iterating until episode ends
     done = False
@@ -73,7 +74,6 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             action = np.random.randint(0, env.ACTION_SPACE_SIZE)
 
         print('Current state:', current_state)
-        print('Location memory:', env.location_memory)
         print('Action:', action)
 
         new_state, reward, done, same = env.step(current_state, action)
@@ -85,7 +85,6 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('Step: ', step)
         print('Path:', path)
         print('Epsilon: ', epsilon)
-        
         print('-------')
 
 

@@ -23,7 +23,7 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 81,60,55,raticate,50,70,97,normal
 50,45,45,haunter,115,55,95,"poison,ghost"
 65,60,130,vaporeon,110,95,65,water
-45,48,70,clefairy,60,65,35,fairy
+45,48,70,clefairy,60,65,35,normal
 50,70,60,electrode,80,80,150,electric
 70,55,35,paras,45,55,25,"grass,bug"
 55,75,90,lickitung,60,75,30,normal
@@ -55,9 +55,9 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 65,60,60,gengar,130,75,110,"poison,ghost"
 63,80,59,wartortle,65,80,58,water
 92,65,80,seaking,65,80,68,water
-45,65,40,mr-mime,100,120,90,"fairy,psychic"
+45,65,40,mr-mime,100,120,90,"psychic"
 130,60,65,flareon,95,110,65,fire
-70,73,95,clefable,95,90,60,fairy
+70,73,95,clefable,95,90,60,normal
 65,95,55,seadra,95,45,85,water
 62,63,60,ivysaur,80,80,60,"poison,grass"
 48,45,60,drowzee,43,90,42,psychic
@@ -95,7 +95,7 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 90,85,90,zapdos,125,90,100,"flying,electric"
 110,70,60,dodrio,60,60,110,"flying,normal"
 41,40,38,vulpix,50,65,65,fire
-45,20,115,jigglypuff,45,25,20,"fairy,normal"
+45,20,115,jigglypuff,45,25,20,"normal"
 70,80,90,dewgong,70,95,70,"ice,water"
 85,80,130,lapras,85,95,60,"ice,water"
 80,50,80,grimer,40,50,25,poison
@@ -146,7 +146,7 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 100,100,100,mew,100,100,100,psychic
 45,35,40,zubat,30,40,55,"flying,poison"
 52,48,50,psyduck,65,50,55,water
-70,45,140,wigglytuff,85,50,45,"fairy,normal"
+70,45,140,wigglytuff,85,50,45,"normal"
 105,65,80,aerodactyl,60,75,130,"flying,rock"
 75,85,60,starmie,100,85,115,"psychic,water"
 64,45,41,dratini,50,50,50,dragon

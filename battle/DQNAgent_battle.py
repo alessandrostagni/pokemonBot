@@ -14,7 +14,7 @@ from keras.optimizers import Adam
 from collections import deque
 from keras.callbacks import TensorBoard
 
-import pokemon_simulate 
+import pokemon_simulate
 
 
 ACTION_SPACE_SIZE = 4
@@ -129,55 +129,50 @@ class DQNAgent:
 
 
 class BlobEnv:
-    SIZE = 10
-    RETURN_IMAGES = True
-    MOVE_PENALTY = 1
-    ENEMY_PENALTY = 300
-    FOOD_REWARD = 25
-    OBSERVATION_SPACE_VALUES = (SIZE, SIZE, 3)  # 4
-    ACTION_SPACE_SIZE = 4
-    PLAYER_N = 1  # player key in dict
-    FOOD_N = 2  # food key in dict
-    ENEMY_N = 3  # enemy key in dict
-    # the dict! (colors)
-    d = {1: (255, 175, 0),
-         2: (0, 255, 0),
-         3: (0, 0, 255)}
 
-    def __init__(self):
-        self.start_position = (3.0, 6.0)
-        self.current_position = self.start_position
+    def __init__(self, n_battles):
+        self.battles = []
+        base_level = 0
+        for i in range(0, n_battles):
+            self.battles.append(pokemon_simulate.get_random_battle(1))
+            base_level +=1
+            if base_level > 100:
+                base_level = 1
+        self.initial_state = self.decode_state(self.battles[0])
         self.episode_step = 0
-        self.x_limits = (0.0, 7.0)
-        self.y_limits = (0.0, 7.0)
-        self.blocks = {(3.0, 5.0), (3.0, 4.0), (0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (0.0, 1.0), (1.0, 1.0), (2.0, 1.0),
-                       (0.0, 7.0), (0.0, 6.0), (6.0, 7.0), (6.0, 6.0)}
-        self.final_state = (7.0, 1.0)
     
-    def decode_state(battle):
+    def decode_state(self, battle):
         pokemon_a = battle[0]
         pokemon_b = battle[1]
+        moves_data = []
+        for i in range(len(pokemon_a.moves)):
+            moves_data.append((pokemon_a.moves[i].get_id(), pokemon_a.moves[i].current_pp))
+        for i in range(4 - len(pokemon_a.moves)):
+            moves_data.append((0,0))
+
         state = [
+            pokemon_a.types[0], pokemon_a.types[1],
             pokemon_a.hp, pokemon_a.attack, pokemon_a.defense,
             pokemon_a.special_attack, pokemon_b.special_defense,
-            pokemon_a.speed, pokemon_a.moves[0].get_id(),
-            pokemon_a.moves[1].get_id(),
-            pokemon_a.moves[2].get_id(),
-            pokemon_a.moves[3].get_id(),
-            pokemon_b.hp, 
+            pokemon_a.speed,
+            moves_data[0][0],
+            moves_data[1][0],
+            moves_data[2][0],
+            moves_data[3][0],
+            moves_data[0][1],
+            moves_data[1][1],
+            moves_data[2][1],
+            moves_data[3][1],
+            pokemon_b.hp, pokemon_b.types[0], pokemon_b.types[1]
         ]
-            
-
+        return state
 
     def reset(self):
         self.episode_step = 0
-        battle = pokemon_simulate.get_random_battle()
-        decode_state(battle)
-        self.current_state = self.start_position
-        self.location_memory.add(self.current_position)
-        return self.current_position
+        self.current_state = self.decode_state(self.battles[0])
+        return self.current_state
 
-    def move(self, current_state, action):
+    def fight(self, current_state, action):
         new_state = current_state
         if action == 0:
             new_pos = (current_state[0] + 1.0, current_state[1])
@@ -199,8 +194,7 @@ class BlobEnv:
 
     def step(self, current_state, action):
         self.episode_step += 1
-        same = False
-        new_observation = self.move(current_state, action)
+        new_observation = self.fight(current_state, action)
         if new_observation == self.final_state:
             reward = +100.0
             done = True

@@ -13,6 +13,26 @@ DATA_DIR = os.path.join(ROOT_DIR, 'data')
 POKEMON_MOVES = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_moves_detailed.csv'))
 POKEMON_STATS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_stats.csv'))
 TYPE_MODS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'type_modifiers.csv')).set_index('attack_type')
+TYPES_DICT = {
+    "normal": 1,
+    "fighting": 2,
+    "flying": 3,
+    "ground": 4,
+    "rock": 5,
+    "bug": 6,
+    "poison": 7,
+    "ghost": 8,
+    "fire": 9,
+    "water": 10,
+    "grass": 11,
+    "electric": 12,
+    "ice": 13,
+    "psychic": 14,
+    "dragon": 15,
+    "fairy": 16,
+    "steel": 17,
+    "dark": 18
+}
 POKEMON_AVAIL = set(list(POKEMON_STATS['pokemon'].unique()))
 VERBOSE = False
 VERBOSE_COUNT = True
@@ -80,19 +100,17 @@ class Pokemon(object):
         IV = 0
         EV = 0
 
-        stats['hp'] = floor(((stats['hp'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + self.level + 10
-        stats['attack'] = floor(((stats['attack'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
-        stats['defense'] = floor(((stats['defense'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
-        stats['special-attack'] = floor(((stats['special-attack'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
-        stats['special-defense'] = floor(((stats['special-defense'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
-        stats['speed'] = floor(((stats['speed'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
+        self.hp = floor(((stats['hp'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + self.level + 10
+        self.attack = floor(((stats['attack'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
+        self.defense = floor(((stats['defense'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
+        self.special_attack = floor(((stats['special-attack'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
+        self.special_defense = floor(((stats['special-defense'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
+        self.speed = floor(((stats['speed'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
 
-        for k, v in stats.items():
-            if k == 'types':
-                setattr(self, k, set(v.split(',')))
-            else:            
-                setattr(self, k.replace('-', '_'), v)
-    
+        self.types = [TYPES_DICT[x] for x in stats['types'].split(',')]
+        if len(self.types) == 1:
+            self.types.append(0)
+        
     def __load_moves(self):
         query = POKEMON_MOVES['pokemon'] == self.name
         if query.sum() < 1:
@@ -110,7 +128,7 @@ class Pokemon(object):
                     val = None
                 
                 setattr(move, k.replace('move_', ''), val)
-            
+            move.type = TYPES_DICT[move.type]
             self.all_moves.append(move)
     
     def pick_moves(self):
@@ -390,10 +408,10 @@ def battle(pokemon, pokemon_b):
     
     return stats
 
-def get_random_battle():
+def get_random_battle(base_level):
     random_pokemon_a = POKEMON_STATS.sample()['pokemon'].iloc[0]
     random_pokemon_b = POKEMON_STATS.sample()['pokemon'].iloc[0]
-    level_a = 1
+    level_a = base_level
     level_b = random.randint(max(0, level_a-5), min(level_a+5, 100))
     return (Pokemon(random_pokemon_a, level_a), Pokemon(random_pokemon_b, level_b))
 
