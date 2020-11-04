@@ -11,7 +11,6 @@ from tqdm import tqdm
 from DQNAgent_battle import DQNAgent
 from DQNAgent_battle import BlobEnv
 
-
 # Environment settings
 EPISODES = 50000
 N_BATTLES = 5
@@ -60,9 +59,13 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
     # Reset environment and get initial state
     current_state = env.reset()
-    stop
+    print('Battles:')
+    for b in env.battles:
+        print(b[0])
+        print(b[1])
+        print('-----')
 
-# Reset flag and start iterating until episode ends
+    # Reset flag and start iterating until episode ends
     done = False
     while not done:
         # This part stays mostly the same, the change is to query a model for Q values
@@ -75,17 +78,21 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
         print('Current state:', current_state)
         print('Action:', action)
+        print('Before fighting:')
+        print(current_state[0])
+        print(current_state[1])
 
-        new_state, reward, done, same = env.step(current_state, action)
+        new_state, reward, done = env.step(current_state, action)
 
         print('New state:', new_state)
         print('Reward: ', reward)
         print('Done: ', done)
         print('Step: ', step)
-        print('Path:', path)
         print('Epsilon: ', epsilon)
+        print('After fighting:')
+        print(current_state[0])
+        print(current_state[1])
         print('-------')
-
 
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward

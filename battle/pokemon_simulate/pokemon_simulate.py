@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
-DATA_DIR = os.path.join(ROOT_DIR, 'data')
+DATA_DIR = os.path.join(ROOT_DIR, '../data')
 
 # load in type modifiers, pokemon, etc
 POKEMON_MOVES = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_moves_detailed.csv'))
@@ -101,6 +101,7 @@ class Pokemon(object):
         EV = 0
 
         self.hp = floor(((stats['hp'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + self.level + 10
+        self.current_hp = self.hp
         self.attack = floor(((stats['attack'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
         self.defense = floor(((stats['defense'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
         self.special_attack = floor(((stats['special-attack'] + IV) * 2 + floor(sqrt(EV) / 4.0)) * self.level / 100) + 5
@@ -126,8 +127,12 @@ class Pokemon(object):
                 
                 if isinstance(val, str) and val.strip() == '':
                     val = None
-                
+
                 setattr(move, k.replace('move_', ''), val)
+            if move.pp is None:
+                print('WHAT')
+                print(move.name)
+                stop
             move.type = TYPES_DICT[move.type]
             self.all_moves.append(move)
     
@@ -155,39 +160,30 @@ class Pokemon(object):
         
         for move in self.moves:
             move.current_pp = move.pp
-    
-    
+
+
     def __str__(self):
         move_str = []
         for move in self.moves:
             move_str.append('{} - {}'.format(move.name, move.type))
             
-        return """
+        return f"""
         =================
-        Pokemon: {}
+        Pokemon: {self.name}
         =================
-        Types:         {}
-        HP:            {}
-        Speed:         {}
-        Attack:        {}
-        Defense:       {}
-        Sp. Attack:    {}
-        Sp. Defense:   {}
+        Types:         {self.types}
+        HP:            {self.current_hp}
+        Speed:         {self.speed}
+        Attack:        {self.attack}
+        Defense:       {self.defense}
+        Sp. Attack:    {self.special_attack}
+        Sp. Defense:   {self.special_defense}
         =====
         Moves
         =====
-        {}
-        """.format(
-            self.name.title(),
-            ', '.join(self.types),
-            self.hp,
-            self.speed,
-            self.attack,
-            self.defense,
-            self.special_attack,
-            self.special_defense,
-            '\n'.join(move_str),
-        )
+        {[(move.name, move.current_pp) for move in self.moves]}
+        """
+
 
 def is_critical_hit(base_speed, move_crit_rate):
     """
@@ -200,6 +196,72 @@ def is_critical_hit(base_speed, move_crit_rate):
     
     chance = np.random.rand()
     return chance <= prob
+
+
+def apply_move(self, attacker, defender, move):
+    """
+    Applies a damaging move attacker->defender where the attacker and defenders
+    are instances of Pokemon. The move is an instance of the move being
+    applied.
+    """
+    # determine if it is a critical hit or not
+    is_crit = is_critical_hit(attacker.speed, move.crit_rate)
+
+    # determine if move applied is the same type as the pokemon or not
+    # when it is the same, a 1.5x bonus is applied
+    # STAB = same type attack bonus
+    stab = 1
+    if move.type in attacker.types:
+        stab = 1.5
+
+    # determine the move damage class to figure out attack/def stats to use
+    attack = attacker.attack
+    defense = defender.defense
+    if move.damage_class == 'special':
+        attack = attacker.special_attack
+        defense = defender.special_defense
+
+    # grab type modifier
+    modifier = 1
+    try:
+        attack_type = move.type.title()
+        for dtype in defender.types:
+            modifier *= TYPE_MODS.loc[attack_type][dtype.title()]
+    except:
+        pass
+
+    # NOTE: attacker level is hard coded to 10
+    # level = 10
+    power = move.power
+    if power is None:
+        power = 1
+
+    damage = 1
+    if move.name == 'seismic-toss':
+        damage = attacker.level
+    else:
+        damage = calculate_damage(attacker.level, attack, power, defense, stab, modifier, is_crit)
+
+    # compute number of times to apply the move
+    times_to_apply = 1
+    if move.min_hits and move.max_hits:
+        times_to_apply = np.random.choice(np.arange(move.min_hits, move.max_hits + 1))
+
+    damage *= times_to_apply
+
+    # apply damage to pokemon and reduce move pp
+    defender.current_hp -= damage
+    move.current_pp -= 1
+
+    if VERBOSE:
+        print('{} damaged {} with {} for {} hp'.format(
+            attacker.name,
+            defender.name,
+            move.name,
+            damage
+        ))
+        print('{} pp for {} is {}/{}'.format(attacker.name, move.name, move.current_pp, move.pp))
+        print('{} hp is {}/{}'.format(defender.name, defender.current_hp, defender.hp))
 
 
 def calculate_damage(a, b, c, d, x, y, crit):
@@ -296,6 +358,7 @@ def apply_move(attacker, defender, move):
         print('{} pp for {} is {}/{}'.format(attacker.name, move.name, move.current_pp, move.pp))
         print('{} hp is {}/{}'.format(defender.name, defender.current_hp, defender.hp))
 
+
 def random_move(pokemon):
     """
     Naive and exhaustive approach in choosing a move. It does not pick the most
@@ -311,6 +374,19 @@ def random_move(pokemon):
         iters += 1
     
     return move
+
+
+def is_critical_hit(base_speed, move_crit_rate):
+    """
+    TODO: amping abilities not applied - focus energy etc..
+    this is bugged in Gen 1 - but we will just ignore it.
+    """
+    prob = base_speed / 512
+    if move_crit_rate == 1:
+        prob = base_speed / 64
+
+    chance = np.random.rand()
+    return chance <= prob
 
 
 def choose_move(pokemon):
@@ -408,12 +484,14 @@ def battle(pokemon, pokemon_b):
     
     return stats
 
+
 def get_random_battle(base_level):
     random_pokemon_a = POKEMON_STATS.sample()['pokemon'].iloc[0]
     random_pokemon_b = POKEMON_STATS.sample()['pokemon'].iloc[0]
     level_a = base_level
     level_b = random.randint(max(0, level_a-5), min(level_a+5, 100))
     return (Pokemon(random_pokemon_a, level_a), Pokemon(random_pokemon_b, level_b))
+
 
 def battle_many(opponents):
     """
@@ -465,6 +543,7 @@ def battle_many(opponents):
     
     return pd.DataFrame(stats)
 
+
 def main():
     # find pokemon that actually have damaging moves
     valid_pokemon = []
@@ -496,6 +575,7 @@ def main():
     
     # output the results
     pd.concat(stats).to_csv(os.path.join(DATA_DIR, 'results', 'simulation_stats.csv'), index=False)
-    
+
+
 if __name__ == '__main__':
     main()

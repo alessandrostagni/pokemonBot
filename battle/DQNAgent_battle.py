@@ -6,6 +6,7 @@ import time
 
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_squared_error
 
 from keras.models import Sequential, load_model
@@ -14,8 +15,9 @@ from keras.optimizers import Adam
 from collections import deque
 from keras.callbacks import TensorBoard
 
-import pokemon_simulate
+from pokemon_simulate import *
 
+#np.random.seed(1)
 
 ACTION_SPACE_SIZE = 4
 MODEL_NAME = "Yoyo"
@@ -25,6 +27,11 @@ MIN_REPLAY_MEMORY_SIZE = 1000  # Minimum number of steps in a memory to start tr
 MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
 UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
 MAX_STEPS = 200
+
+ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
+DATA_DIR = os.path.join(ROOT_DIR, 'data')
+TYPE_MODS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'type_modifiers.csv')).set_index('attack_type')
+VERBOSE = True
 
 
 class DQNAgent:
@@ -46,9 +53,35 @@ class DQNAgent:
         # Used to count when to update target network with main network's weights
         self.target_update_counter = 0
 
+    def decode_state(self, battle):
+        pokemon_a = battle[0]
+        pokemon_b = battle[1]
+        moves_data = []
+        for i in range(len(pokemon_a.moves)):
+            moves_data.append((pokemon_a.moves[i].get_id(), pokemon_a.moves[i].current_pp))
+        for i in range(4 - len(pokemon_a.moves)):
+            moves_data.append((0, 0))
+
+        state = [
+            pokemon_a.types[0], pokemon_a.types[1],
+            pokemon_a.hp, pokemon_a.attack, pokemon_a.defense,
+            pokemon_a.special_attack, pokemon_b.special_defense,
+            pokemon_a.speed,
+            moves_data[0][0],
+            moves_data[1][0],
+            moves_data[2][0],
+            moves_data[3][0],
+            moves_data[0][1],
+            moves_data[1][1],
+            moves_data[2][1],
+            moves_data[3][1],
+            pokemon_b.hp, pokemon_b.types[0], pokemon_b.types[1]
+        ]
+        return state
+
     def create_model(self):
         model = Sequential()
-        model.add(Dense(32, input_shape=(2,)))
+        model.add(Dense(32, input_shape=(19,)))
         model.add(Dense(64))
         model.add(Dense(ACTION_SPACE_SIZE, activation='linear'))
         model.compile(loss="mean_squared_error", optimizer=Adam(lr=0.001))
@@ -60,7 +93,11 @@ class DQNAgent:
     # Adds step's data to a memory replay array
     # (observation space, action, reward, new observation space, done)
     def update_replay_memory(self, transition):
-        self.replay_memory.append(transition)
+        self.replay_memory.append((
+            self.decode_state(transition[0]), transition[1],
+            transition[2], self.decode_state(transition[3]),
+            transition[4]
+        ))
 
     def train(self, terminal_state, step):
         # Start training only if certain number of samples is already saved
@@ -121,6 +158,7 @@ class DQNAgent:
 
     # Queries main network for Q values given current observation space (environment state)
     def get_qs(self, state):
+        state = self.decode_state(state)
         input = np.array(state).reshape(-1, len(state))
         print('Input:', input)
         prediction = self.model.predict(input)[0]
@@ -131,182 +169,108 @@ class DQNAgent:
 class BlobEnv:
 
     def __init__(self, n_battles):
+        self.ACTION_SPACE_SIZE = 4
         self.battles = []
         base_level = 0
         for i in range(0, n_battles):
-            self.battles.append(pokemon_simulate.get_random_battle(1))
-            base_level +=1
+            self.battles.append(get_random_battle(base_level))
+            base_level += 1
             if base_level > 100:
                 base_level = 1
         self.current_state = self.battles[0]
-        self.max_pokemon_b_hp = self.battles[0][1].hp
         self.first_attack = True
         self.episode_step = 0
         self.battle_index = 0
-    
-    def decode_state(self, battle):
-        pokemon_a = battle[0]
-        pokemon_b = battle[1]
-        moves_data = []
-        for i in range(len(pokemon_a.moves)):
-            moves_data.append((pokemon_a.moves[i].get_id(), pokemon_a.moves[i].current_pp))
-        for i in range(4 - len(pokemon_a.moves)):
-            moves_data.append((0,0))
-
-        state = [
-            pokemon_a.types[0], pokemon_a.types[1],
-            pokemon_a.hp, pokemon_a.attack, pokemon_a.defense,
-            pokemon_a.special_attack, pokemon_b.special_defense,
-            pokemon_a.speed,
-            moves_data[0][0],
-            moves_data[1][0],
-            moves_data[2][0],
-            moves_data[3][0],
-            moves_data[0][1],
-            moves_data[1][1],
-            moves_data[2][1],
-            moves_data[3][1],
-            pokemon_b.hp, pokemon_b.types[0], pokemon_b.types[1]
-        ]
-        return state
 
     def reset(self):
         self.battle_index = 0
         self.episode_step = 0
         self.current_state = self.battles[0]
-        self.max_pokemon_b_hp = self.battles[0][1].hp
+        self.current_state[0].reset()
+        self.current_state[1].reset()
         self.battle_index = 0
         return self.current_state
 
-    def apply_move(attacker, defender, move):
-        """
-        Applies a damaging move attacker->defender where the attacker and defenders
-        are instances of Pokemon. The move is an instance of the move being
-        applied.
-        """
-        # determine if it is a critical hit or not
-        is_crit = is_critical_hit(attacker.speed, move.crit_rate)
-        
-        # determine if move applied is the same type as the pokemon or not
-        # when it is the same, a 1.5x bonus is applied
-        # STAB = same type attack bonus
-        stab = 1
-        if move.type in attacker.types:
-            stab = 1.5
-        
-        # determine the move damage class to figure out attack/def stats to use
-        attack = attacker.attack
-        defense = defender.defense
-        if move.damage_class == 'special':
-            attack = attacker.special_attack
-            defense = defender.special_defense
-        
-        # grab type modifier
-        modifier = 1
-        try:
-            attack_type = move.type.title()
-            for dtype in defender.types:
-                modifier *= TYPE_MODS.loc[attack_type][dtype.title()]
-        except:
-            pass
-        
-        # NOTE: attacker level is hard coded to 10
-        # level = 10
-        power = move.power
-        if power is None:
-            power = 1
-        
-        damage = 1
-        if move.name == 'seismic-toss':
-            damage = attacker.level
-        else:
-            damage = calculate_damage(attacker.level, attack, power, defense, stab, modifier, is_crit)
-        
-        # compute number of times to apply the move
-        times_to_apply = 1
-        if move.min_hits and move.max_hits:
-            times_to_apply = np.random.choice(np.arange(move.min_hits, move.max_hits + 1))
-        
-        damage *= times_to_apply
-        
-        # apply damage to pokemon and reduce move pp
-        defender.current_hp -= damage
-        move.current_pp -= 1
-        
-        if VERBOSE:
-            print('{} damaged {} with {} for {} hp'.format(
-                attacker.name,
-                defender.name,
-                move.name,
-                damage
-            ))
-            print('{} pp for {} is {}/{}'.format(attacker.name, move.name, move.current_pp, move.pp))
-            print('{} hp is {}/{}'.format(defender.name, defender.current_hp, defender.hp))
-
     def step(self, current_state, action):
         self.episode_step += 1
-        pokemon_a = battle[0]
-        pokemon_b = battle[1]
+        pokemon_a = current_state[0]
+        pokemon_b = current_state[1]
         pokemon_b_hp_start = pokemon_b.hp
         done = False
         attacker_label = None
         if pokemon_a.speed > pokemon_b.speed:
-             attacker_label = 'a'
+            attacker_label = 'a'
         if pokemon_a.speed < pokemon_b.speed:
             attacker_label = 'b'
         else:
-            attacker_label = = np.random.choice(['a', 'b'])
-        
-        if attacer_label == 'a':
+            attacker_label = np.random.choice(['a', 'b'])
+
+        if attacker_label == 'a':
             attacker = pokemon_a
             defender = pokemon_b
             move = pokemon_a.moves[action]
-            if move.pp = 0:
+            print(f'Pokemon a chooses {move.name}')
+            if move.pp == 0:
+                print(f'Finished pp for move {move.name}, can\'t use it!')
                 return current_state, True, -100.0
         else:
             attacker = pokemon_b
             defender = pokemon_a
             move = choose_move(attacker)
-        
+            print(f'Pokemon b chooses {move.name}')
+
         if move is not None:
             apply_move(attacker, defender, move)
         else:
             moves_exhausted = True
-        
+
         if defender.current_hp <= 0:
-            if attacker_label  = 'a':
+            if attacker_label == 'a':
                 if self.battle_index < len(self.battles):
-                    self.battle_index +=1
+                    self.battle_index += 1
                     return self.battles[self.battle_index], +100.0, False
                 else:
                     return current_state, +100.0, True
             else:
+                if self.episode_step == 1 or self.episode_step > 200:
+                    self.battle_index += 1
+                    current_state = self.battles[self.battle_index]
+                    current_state[0].reset()
+                    current_state[1].reset()
+                    return current_state, 0.0, False
                 return current_state, -300.0, True
-        
+
         # Other pokemon attacks
         if attacker_label == 'a':
             attacker_label = 'b'
             attacker = pokemon_b
             defender = pokemon_a
             move = choose_move(attacker)
+            print(f'Pokemon b chooses {move.name}')
         else:
             attacker_label = 'a'
             attacker = pokemon_a
             defender = pokemon_b
+            if action >= len(pokemon_a.moves):
+                return current_state, True, -100.0
             move = pokemon_a.moves[action]
-            if move.pp = 0:
+            print(f'Pokemon a chooses {move.name}')
+            if move.pp == 0:
+                print(f'Finished pp for move {move.name}, can\'t use it!')
                 return current_state, True, -100.0
         if move is not None:
             apply_move(attacker, defender, move)
-        
+
         if defender.current_hp <= 0:
-            if attacker_label  = 'a':
+            if attacker_label == 'a':
                 if self.battle_index < len(self.battles):
-                    self.battle_index +=1
+                    self.battle_index += 1
                     return self.battles[self.battle_index], +100.0, False
                 else:
                     return current_state, +100.0, True
             else:
-                return current_state, -300.0, True
-        reward = (pokemon_b.hp - pokemon_b_hp_start) / self.max_pokemon_b_hp * 100
-        return (pokemon_a, pokemon_b), reward, False 
+                if self.episode_step > 200:
+                    return current_state, -300.0, True
+                return current_state, -300.0, False
+        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b.hp * 100
+        return (pokemon_a, pokemon_b), reward, False
