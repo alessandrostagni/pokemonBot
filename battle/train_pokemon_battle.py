@@ -77,7 +77,6 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('Action:', action)
 
         new_state, reward, done, same = env.step(current_state, action)
-        path.append((new_state[0], new_state[1], action))
 
         print('New state:', new_state)
         print('Reward: ', reward)

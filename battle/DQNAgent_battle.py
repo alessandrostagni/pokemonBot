@@ -138,8 +138,11 @@ class BlobEnv:
             base_level +=1
             if base_level > 100:
                 base_level = 1
-        self.initial_state = self.decode_state(self.battles[0])
+        self.current_state = self.battles[0]
+        self.max_pokemon_b_hp = self.battles[0][1].hp
+        self.first_attack = True
         self.episode_step = 0
+        self.battle_index = 0
     
     def decode_state(self, battle):
         pokemon_a = battle[0]
@@ -168,45 +171,142 @@ class BlobEnv:
         return state
 
     def reset(self):
+        self.battle_index = 0
         self.episode_step = 0
-        self.current_state = self.decode_state(self.battles[0])
+        self.current_state = self.battles[0]
+        self.max_pokemon_b_hp = self.battles[0][1].hp
+        self.battle_index = 0
         return self.current_state
 
-    def fight(self, current_state, action):
-        new_state = current_state
-        if action == 0:
-            new_pos = (current_state[0] + 1.0, current_state[1])
-            if new_pos not in self.blocks and new_pos[0] <= self.x_limits[1]:
-                new_state = new_pos
-        if action == 1:
-            new_pos = (current_state[0] - 1.0, current_state[1])
-            if new_pos not in self.blocks and new_pos[0] >= self.x_limits[0]:
-                new_state = new_pos
-        if action == 2:
-            new_pos = (current_state[0], current_state[1] + 1.0)
-            if new_pos not in self.blocks and new_pos[1] <= self.y_limits[1]:
-                new_state = new_pos
-        if action == 3:
-            new_pos = (current_state[0], current_state[1] - 1.0)
-            if new_pos not in self.blocks and new_pos[1] >= self.y_limits[0]:
-                new_state = new_pos
-        return new_state
+    def apply_move(attacker, defender, move):
+        """
+        Applies a damaging move attacker->defender where the attacker and defenders
+        are instances of Pokemon. The move is an instance of the move being
+        applied.
+        """
+        # determine if it is a critical hit or not
+        is_crit = is_critical_hit(attacker.speed, move.crit_rate)
+        
+        # determine if move applied is the same type as the pokemon or not
+        # when it is the same, a 1.5x bonus is applied
+        # STAB = same type attack bonus
+        stab = 1
+        if move.type in attacker.types:
+            stab = 1.5
+        
+        # determine the move damage class to figure out attack/def stats to use
+        attack = attacker.attack
+        defense = defender.defense
+        if move.damage_class == 'special':
+            attack = attacker.special_attack
+            defense = defender.special_defense
+        
+        # grab type modifier
+        modifier = 1
+        try:
+            attack_type = move.type.title()
+            for dtype in defender.types:
+                modifier *= TYPE_MODS.loc[attack_type][dtype.title()]
+        except:
+            pass
+        
+        # NOTE: attacker level is hard coded to 10
+        # level = 10
+        power = move.power
+        if power is None:
+            power = 1
+        
+        damage = 1
+        if move.name == 'seismic-toss':
+            damage = attacker.level
+        else:
+            damage = calculate_damage(attacker.level, attack, power, defense, stab, modifier, is_crit)
+        
+        # compute number of times to apply the move
+        times_to_apply = 1
+        if move.min_hits and move.max_hits:
+            times_to_apply = np.random.choice(np.arange(move.min_hits, move.max_hits + 1))
+        
+        damage *= times_to_apply
+        
+        # apply damage to pokemon and reduce move pp
+        defender.current_hp -= damage
+        move.current_pp -= 1
+        
+        if VERBOSE:
+            print('{} damaged {} with {} for {} hp'.format(
+                attacker.name,
+                defender.name,
+                move.name,
+                damage
+            ))
+            print('{} pp for {} is {}/{}'.format(attacker.name, move.name, move.current_pp, move.pp))
+            print('{} hp is {}/{}'.format(defender.name, defender.current_hp, defender.hp))
 
     def step(self, current_state, action):
         self.episode_step += 1
-        new_observation = self.fight(current_state, action)
-        if new_observation == self.final_state:
-            reward = +100.0
-            done = True
-        elif new_observation == current_state:
-            reward = -100.0
-            done = True
+        pokemon_a = battle[0]
+        pokemon_b = battle[1]
+        pokemon_b_hp_start = pokemon_b.hp
+        done = False
+        attacker_label = None
+        if pokemon_a.speed > pokemon_b.speed:
+             attacker_label = 'a'
+        if pokemon_a.speed < pokemon_b.speed:
+            attacker_label = 'b'
         else:
-            done = False
-            reward = -1.0
-        if new_observation == self.final_state:
-            print('FOUND!')
-        if self.episode_step >= MAX_STEPS:
-            done = True
-        print(self.location_memory)
-        return new_observation, reward, done, same
+            attacker_label = = np.random.choice(['a', 'b'])
+        
+        if attacer_label == 'a':
+            attacker = pokemon_a
+            defender = pokemon_b
+            move = pokemon_a.moves[action]
+            if move.pp = 0:
+                return current_state, True, -100.0
+        else:
+            attacker = pokemon_b
+            defender = pokemon_a
+            move = choose_move(attacker)
+        
+        if move is not None:
+            apply_move(attacker, defender, move)
+        else:
+            moves_exhausted = True
+        
+        if defender.current_hp <= 0:
+            if attacker_label  = 'a':
+                if self.battle_index < len(self.battles):
+                    self.battle_index +=1
+                    return self.battles[self.battle_index], +100.0, False
+                else:
+                    return current_state, +100.0, True
+            else:
+                return current_state, -300.0, True
+        
+        # Other pokemon attacks
+        if attacker_label == 'a':
+            attacker_label = 'b'
+            attacker = pokemon_b
+            defender = pokemon_a
+            move = choose_move(attacker)
+        else:
+            attacker_label = 'a'
+            attacker = pokemon_a
+            defender = pokemon_b
+            move = pokemon_a.moves[action]
+            if move.pp = 0:
+                return current_state, True, -100.0
+        if move is not None:
+            apply_move(attacker, defender, move)
+        
+        if defender.current_hp <= 0:
+            if attacker_label  = 'a':
+                if self.battle_index < len(self.battles):
+                    self.battle_index +=1
+                    return self.battles[self.battle_index], +100.0, False
+                else:
+                    return current_state, +100.0, True
+            else:
+                return current_state, -300.0, True
+        reward = (pokemon_b.hp - pokemon_b_hp_start) / self.max_pokemon_b_hp * 100
+        return (pokemon_a, pokemon_b), reward, False 
