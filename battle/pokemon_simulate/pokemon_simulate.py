@@ -127,12 +127,8 @@ class Pokemon(object):
                 
                 if isinstance(val, str) and val.strip() == '':
                     val = None
-
+                
                 setattr(move, k.replace('move_', ''), val)
-            if move.pp is None:
-                print('WHAT')
-                print(move.name)
-                stop
             move.type = TYPES_DICT[move.type]
             self.all_moves.append(move)
     
@@ -156,7 +152,6 @@ class Pokemon(object):
             
     def reset(self):
         self.current_hp = self.hp
-        self.pick_moves()
         
         for move in self.moves:
             move.current_pp = move.pp
@@ -368,7 +363,7 @@ def random_move(pokemon):
     move = None
     while move is None and iters < 100:
         move = np.random.choice(pokemon.moves)
-        if move.current_pp < 1:
+        if move.current_pp < 1 or move is None:
             move = None
         
         iters += 1
@@ -489,7 +484,7 @@ def get_random_battle(base_level):
     random_pokemon_a = POKEMON_STATS.sample()['pokemon'].iloc[0]
     random_pokemon_b = POKEMON_STATS.sample()['pokemon'].iloc[0]
     level_a = base_level
-    level_b = random.randint(max(0, level_a-5), min(level_a+5, 100))
+    level_b = random.randint(max(0, level_a-2), min(level_a+2, 100))
     return (Pokemon(random_pokemon_a, level_a), Pokemon(random_pokemon_b, level_b))
 
 

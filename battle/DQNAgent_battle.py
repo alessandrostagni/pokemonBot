@@ -15,9 +15,9 @@ from keras.optimizers import Adam
 from collections import deque
 from keras.callbacks import TensorBoard
 
-from pokemon_simulate import *
+from pokemon_simulate.pokemon_simulate import *
 
-#np.random.seed(1)
+np.random.seed(1)
 
 ACTION_SPACE_SIZE = 4
 MODEL_NAME = "Yoyo"
@@ -171,6 +171,8 @@ class BlobEnv:
     def __init__(self, n_battles):
         self.ACTION_SPACE_SIZE = 4
         self.battles = []
+        self.same_state = 0
+        self.last_state = None
         base_level = 0
         for i in range(0, n_battles):
             self.battles.append(get_random_battle(base_level))
@@ -181,18 +183,47 @@ class BlobEnv:
         self.first_attack = True
         self.episode_step = 0
         self.battle_index = 0
+        self.reset_index = 0
 
     def reset(self):
-        self.battle_index = 0
+        self.battle_index = self.reset_index
         self.episode_step = 0
         self.current_state = self.battles[0]
         self.current_state[0].reset()
         self.current_state[1].reset()
         self.battle_index = 0
         return self.current_state
+    
+    def win(self, current_state):
+        self.last_state = None
+        self.same_state = 0
+        if self.battle_index < len(self.battles):
+            self.battle_index += 1
+            current_state = self.battles[self.battle_index]
+            current_state[0].reset()
+            current_state[1].reset()
+            return current_state, +100.0, False
+        return current_state, +100.0, True
+    
+    def defeat(self, current_state):
+        if current_state == self.last_state:
+            self.same_state += 1
+        else:
+            self.last_state = current_state
+            self.same_state = 0
+        if self.same_state > 5:
+            self.battle_index += 1
+            self.reset_index += 1
+            current_state = self.battles[self.battle_index]
+            current_state[0].reset()
+            current_state[1].reset()
+            return current_state, 0.0, False
+        return current_state, -300.0, True
 
     def step(self, current_state, action):
         self.episode_step += 1
+        if self.episode_step == 1:
+            self.last_state = current_state
         pokemon_a = current_state[0]
         pokemon_b = current_state[1]
         pokemon_b_hp_start = pokemon_b.hp
@@ -208,6 +239,8 @@ class BlobEnv:
         if attacker_label == 'a':
             attacker = pokemon_a
             defender = pokemon_b
+            if action >= len(pokemon_a.moves):
+                return current_state, True, -100.0
             move = pokemon_a.moves[action]
             print(f'Pokemon a chooses {move.name}')
             if move.pp == 0:
@@ -226,19 +259,10 @@ class BlobEnv:
 
         if defender.current_hp <= 0:
             if attacker_label == 'a':
-                if self.battle_index < len(self.battles):
-                    self.battle_index += 1
-                    return self.battles[self.battle_index], +100.0, False
-                else:
-                    return current_state, +100.0, True
+                return self.win(current_state)
             else:
-                if self.episode_step == 1 or self.episode_step > 200:
-                    self.battle_index += 1
-                    current_state = self.battles[self.battle_index]
-                    current_state[0].reset()
-                    current_state[1].reset()
-                    return current_state, 0.0, False
-                return current_state, -300.0, True
+                return self.defeat(current_state)
+                
 
         # Other pokemon attacks
         if attacker_label == 'a':
@@ -263,14 +287,8 @@ class BlobEnv:
 
         if defender.current_hp <= 0:
             if attacker_label == 'a':
-                if self.battle_index < len(self.battles):
-                    self.battle_index += 1
-                    return self.battles[self.battle_index], +100.0, False
-                else:
-                    return current_state, +100.0, True
+                return self.win(current_state)
             else:
-                if self.episode_step > 200:
-                    return current_state, -300.0, True
-                return current_state, -300.0, False
+                return self.defeat(current_state)
         reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b.hp * 100
         return (pokemon_a, pokemon_b), reward, False
