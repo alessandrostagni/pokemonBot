@@ -1,11 +1,13 @@
 # Custom
 models_simulation/
+battle/models_battle
 states/
 logs/
 .idea
 graphs
 0.14
 keras-py38
+*.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

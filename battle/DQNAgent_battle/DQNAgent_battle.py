@@ -8,6 +8,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
+import pickle
 
 from keras.models import Sequential, load_model
 from keras.layers import Dense
@@ -15,21 +16,21 @@ from keras.optimizers import Adam
 from collections import deque
 from keras.callbacks import TensorBoard
 
-from pokemon_simulate.pokemon_simulate import *
+from pokemon_simulate import *
 
 np.random.seed(1)
 
 ACTION_SPACE_SIZE = 4
 MODEL_NAME = "Yoyo"
 DISCOUNT = 0.99
-REPLAY_MEMORY_SIZE = 5000  # How many last steps to keep for model training
+REPLAY_MEMORY_SIZE = 50000  # How many last steps to keep for model training
 MIN_REPLAY_MEMORY_SIZE = 1000  # Minimum number of steps in a memory to start training
 MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
 UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
 MAX_STEPS = 200
 
 ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
-DATA_DIR = os.path.join(ROOT_DIR, 'data')
+DATA_DIR = os.path.join(ROOT_DIR, '../data')
 TYPE_MODS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'type_modifiers.csv')).set_index('attack_type')
 VERBOSE = True
 
@@ -169,26 +170,34 @@ class DQNAgent:
 class BlobEnv:
 
     def __init__(self, n_battles):
+        self.n_battles = n_battles
         self.ACTION_SPACE_SIZE = 4
         self.battles = []
         self.same_state = 0
         self.last_state = None
+        self.first_attack = True
+        self.episode_step = 0
+        self.battle_index = 0
+        self.reset_index = 0
+        self.current_state = None
+
+    def create_battles(self, path):
         base_level = 0
-        for i in range(0, n_battles):
+        for i in range(0, self.n_battles):
             self.battles.append(get_random_battle(base_level))
             base_level += 1
             if base_level > 100:
                 base_level = 1
         self.current_state = self.battles[0]
-        self.first_attack = True
-        self.episode_step = 0
-        self.battle_index = 0
-        self.reset_index = 0
+        pickle.dump(self.battles, open(path, 'wb'))
+
+    def load_battles(self, path):
+        self.battles = pickle.load(open(path, 'rb'))
+        self.current_state = self.battles[0]
 
     def reset(self):
         self.battle_index = self.reset_index
         self.episode_step = 0
-        self.current_state = self.battles[0]
         self.current_state[0].reset()
         self.current_state[1].reset()
         self.battle_index = 0
@@ -202,8 +211,8 @@ class BlobEnv:
             current_state = self.battles[self.battle_index]
             current_state[0].reset()
             current_state[1].reset()
-            return current_state, +100.0, False
-        return current_state, +100.0, True
+            return current_state, +10.0, False
+        return current_state, +10.0, True
     
     def defeat(self, current_state):
         if current_state == self.last_state:
@@ -218,7 +227,7 @@ class BlobEnv:
             current_state[0].reset()
             current_state[1].reset()
             return current_state, 0.0, False
-        return current_state, -300.0, True
+        return current_state, -30.0, True
 
     def step(self, current_state, action):
         self.episode_step += 1
@@ -240,12 +249,12 @@ class BlobEnv:
             attacker = pokemon_a
             defender = pokemon_b
             if action >= len(pokemon_a.moves):
-                return current_state, True, -100.0
+                return current_state, True, -10.0
             move = pokemon_a.moves[action]
             print(f'Pokemon a chooses {move.name}')
             if move.pp == 0:
                 print(f'Finished pp for move {move.name}, can\'t use it!')
-                return current_state, True, -100.0
+                return current_state, True, -10.0
         else:
             attacker = pokemon_b
             defender = pokemon_a
@@ -262,7 +271,6 @@ class BlobEnv:
                 return self.win(current_state)
             else:
                 return self.defeat(current_state)
-                
 
         # Other pokemon attacks
         if attacker_label == 'a':
@@ -276,12 +284,12 @@ class BlobEnv:
             attacker = pokemon_a
             defender = pokemon_b
             if action >= len(pokemon_a.moves):
-                return current_state, True, -100.0
+                return current_state, True, -10.0
             move = pokemon_a.moves[action]
             print(f'Pokemon a chooses {move.name}')
             if move.pp == 0:
                 print(f'Finished pp for move {move.name}, can\'t use it!')
-                return current_state, True, -100.0
+                return current_state, True, -10.0
         if move is not None:
             apply_move(attacker, defender, move)
 

@@ -11,7 +11,7 @@ DATA_DIR = os.path.join(ROOT_DIR, '../data')
 
 # load in type modifiers, pokemon, etc
 POKEMON_MOVES = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_moves_detailed.csv'))
-POKEMON_STATS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_stats.csv'))
+POKEMON_STATS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_stats_no_ditto.csv'))
 TYPE_MODS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'type_modifiers.csv')).set_index('attack_type')
 TYPES_DICT = {
     "normal": 1,
@@ -38,6 +38,7 @@ VERBOSE = False
 VERBOSE_COUNT = True
 NUM_SIMULATIONS = 1000
 
+
 class Move(object):
     """
     Encapsulates a move to apply for a given pokemon. It is used to keep track
@@ -50,10 +51,8 @@ class Move(object):
         return int(self.url.split('/')[-2])
     
     def __str__(self):
-        out = []
-        out.append('Name: {}'.format(self.name))
-        out.append('Type: {}'.format(self.type))
-        
+        out = ['Name: {}'.format(self.name), 'Type: {}'.format(self.type)]
+
         for k, v in self.__dict__.items():
             if k in ('name', 'type', 'url', 'pokemon') or v is None:
                 continue
