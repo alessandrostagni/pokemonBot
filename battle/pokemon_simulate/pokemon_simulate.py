@@ -11,7 +11,7 @@ DATA_DIR = os.path.join(ROOT_DIR, '../data')
 
 # load in type modifiers, pokemon, etc
 POKEMON_MOVES = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_moves_detailed.csv'))
-POKEMON_STATS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_stats_no_ditto.csv'))
+POKEMON_STATS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'pokemon_stats_no_weirdos.csv'))
 TYPE_MODS = pd.read_csv(os.path.join(DATA_DIR, 'processed', 'type_modifiers.csv')).set_index('attack_type')
 TYPES_DICT = {
     "normal": 1,
@@ -89,7 +89,7 @@ class Pokemon(object):
         self.__load_moves()
         self.pick_moves()
     
-    def __load_stats(self):        
+    def __load_stats(self):
         query = POKEMON_STATS['pokemon'] == self.name
         if query.sum() != 1:
             raise RuntimeError('{} expecting 1 result for stats, got {}'.format(self.name, query.sum()))
@@ -123,11 +123,12 @@ class Pokemon(object):
                 val = v
                 if isinstance(val, float) and np.isnan(val):
                     val = None
-                
+
                 if isinstance(val, str) and val.strip() == '':
                     val = None
-                
+
                 setattr(move, k.replace('move_', ''), val)
+            move.current_pp = move.pp
             move.type = TYPES_DICT[move.type]
             self.all_moves.append(move)
     
@@ -155,7 +156,6 @@ class Pokemon(object):
         for move in self.moves:
             move.current_pp = move.pp
 
-
     def __str__(self):
         move_str = []
         for move in self.moves:
@@ -165,6 +165,7 @@ class Pokemon(object):
         =================
         Pokemon: {self.name}
         =================
+        Level:         {self.level}
         Types:         {self.types}
         HP:            {self.current_hp}
         Speed:         {self.speed}
@@ -175,7 +176,7 @@ class Pokemon(object):
         =====
         Moves
         =====
-        {[(move.name, move.current_pp) for move in self.moves]}
+        {[(move.name, move.current_pp, move.pp) for move in self.moves]}
         """
 
 

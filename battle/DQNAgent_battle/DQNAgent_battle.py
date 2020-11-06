@@ -173,8 +173,6 @@ class BlobEnv:
         self.n_battles = n_battles
         self.ACTION_SPACE_SIZE = 4
         self.battles = []
-        self.same_state = 0
-        self.last_state = None
         self.first_attack = True
         self.episode_step = 0
         self.battle_index = 0
@@ -184,8 +182,8 @@ class BlobEnv:
     def create_battles(self, path):
         base_level = 0
         for i in range(0, self.n_battles):
-            self.battles.append(get_random_battle(base_level))
             base_level += 1
+            self.battles.append(get_random_battle(base_level))
             if base_level > 100:
                 base_level = 1
         self.current_state = self.battles[0]
@@ -200,12 +198,9 @@ class BlobEnv:
         self.episode_step = 0
         self.current_state[0].reset()
         self.current_state[1].reset()
-        self.battle_index = 0
         return self.current_state
     
     def win(self, current_state):
-        self.last_state = None
-        self.same_state = 0
         if self.battle_index < len(self.battles):
             self.battle_index += 1
             current_state = self.battles[self.battle_index]
@@ -215,19 +210,12 @@ class BlobEnv:
         return current_state, +10.0, True
     
     def defeat(self, current_state):
-        if current_state == self.last_state:
-            self.same_state += 1
-        else:
-            self.last_state = current_state
-            self.same_state = 0
-        if self.same_state > 5:
-            self.battle_index += 1
-            self.reset_index += 1
-            current_state = self.battles[self.battle_index]
-            current_state[0].reset()
-            current_state[1].reset()
-            return current_state, 0.0, False
-        return current_state, -30.0, True
+        self.battle_index += 1
+        self.reset_index += 1
+        current_state = self.battles[self.battle_index]
+        current_state[0].reset()
+        current_state[1].reset()
+        return current_state, -30.0, False
 
     def step(self, current_state, action):
         self.episode_step += 1
@@ -260,11 +248,8 @@ class BlobEnv:
             defender = pokemon_a
             move = choose_move(attacker)
             print(f'Pokemon b chooses {move.name}')
-
-        if move is not None:
-            apply_move(attacker, defender, move)
-        else:
-            moves_exhausted = True
+            if move is not None:
+                apply_move(attacker, defender, move)
 
         if defender.current_hp <= 0:
             if attacker_label == 'a':
@@ -278,6 +263,8 @@ class BlobEnv:
             attacker = pokemon_b
             defender = pokemon_a
             move = choose_move(attacker)
+            if move is not None:
+                apply_move(attacker, defender, move)
             print(f'Pokemon b chooses {move.name}')
         else:
             attacker_label = 'a'
@@ -290,8 +277,6 @@ class BlobEnv:
             if move.pp == 0:
                 print(f'Finished pp for move {move.name}, can\'t use it!')
                 return current_state, True, -10.0
-        if move is not None:
-            apply_move(attacker, defender, move)
 
         if defender.current_hp <= 0:
             if attacker_label == 'a':

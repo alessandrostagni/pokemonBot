@@ -3,7 +3,6 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 85,95,80,rhyhorn,30,30,25,"rock,ground"
 95,80,60,parasect,60,80,30,"grass,bug"
 55,115,65,tangela,100,40,60,grass
-20,15,25,abra,105,55,90,psychic
 55,50,60,venonat,40,55,45,"poison,bug"
 110,80,70,scyther,55,80,105,"flying,bug"
 45,55,65,seel,45,70,45,water
@@ -87,7 +86,6 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 45,55,30,staryu,70,55,85,water
 110,80,90,arcanine,100,80,95,fire
 100,70,80,machoke,50,60,45,fighting
-25,50,45,kakuna,25,25,35,"poison,bug"
 50,45,55,alakazam,135,95,120,psychic
 90,120,65,weezing,85,70,60,poison
 95,69,60,arbok,65,79,80,poison
@@ -120,7 +118,6 @@ attack,defense,hp,pokemon,special-attack,special-defense,speed,types
 105,75,105,muk,65,100,50,poison
 45,35,40,meowth,40,40,90,normal
 130,120,105,rhydon,45,45,40,"rock,ground"
-20,55,50,metapod,25,25,30,bug
 45,160,35,onix,30,45,70,"ground,rock"
 60,125,70,omastar,115,70,55,"water,rock"
 100,50,35,dugtrio,50,70,120,ground

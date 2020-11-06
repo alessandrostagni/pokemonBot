@@ -14,7 +14,7 @@ from DQNAgent_battle import *
 
 # Environment settings
 EPISODES = 100000
-N_BATTLES = 100000
+N_BATTLES = 10000
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
@@ -32,7 +32,7 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 m = DQNAgent().create_model()
 agent = DQNAgent()
 env = BlobEnv(N_BATTLES)
-#env.create_battles(r'battles.pickle')
+env.create_battles(r'battles.pickle')
 env.load_battles(r'battles.pickle')
 
 # For stats
