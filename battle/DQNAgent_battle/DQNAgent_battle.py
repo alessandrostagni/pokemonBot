@@ -58,10 +58,31 @@ class DQNAgent:
         pokemon_a = battle[0]
         pokemon_b = battle[1]
         moves_data = []
-        for i in range(len(pokemon_a.moves)):
-            moves_data.append((pokemon_a.moves[i].get_id(), pokemon_a.moves[i].current_pp))
+        for move in pokemon_a.moves:
+            move_max_hits = None
+            move_accuracy = None
+            move_power = None
+            if move.max_hits is None:
+                move_max_hits = -1
+            else:
+                move_max_hits = move.max_hits
+
+            if move.accuracy is None:
+                move_accuracy = -1
+            else:
+                move_accuracy = move.accuracy
+
+            move_power = move.power
+            if move.power is None:
+                move_power = -1
+            else:
+                move_power = move.power
+
+            moves_data.append((
+                move.get_id(), move.current_pp, move_max_hits, move_accuracy, move_power
+            ))
         for i in range(4 - len(pokemon_a.moves)):
-            moves_data.append((0, 0))
+            moves_data.append((-1, -1, -1, -1, -1))
 
         state = [
             pokemon_a.types[0], pokemon_a.types[1],
@@ -76,13 +97,25 @@ class DQNAgent:
             moves_data[1][1],
             moves_data[2][1],
             moves_data[3][1],
+            moves_data[0][2],
+            moves_data[1][2],
+            moves_data[2][2],
+            moves_data[3][2],
+            moves_data[0][3],
+            moves_data[1][3],
+            moves_data[2][3],
+            moves_data[3][3],
+            moves_data[0][4],
+            moves_data[1][4],
+            moves_data[2][4],
+            moves_data[3][4],
             pokemon_b.hp, pokemon_b.types[0], pokemon_b.types[1]
         ]
         return state
 
     def create_model(self):
         model = Sequential()
-        model.add(Dense(32, input_shape=(19,)))
+        model.add(Dense(32, input_shape=(31,)))
         model.add(Dense(64))
         model.add(Dense(ACTION_SPACE_SIZE, activation='linear'))
         model.compile(loss="mean_squared_error", optimizer=Adam(lr=0.001))
@@ -201,21 +234,28 @@ class BlobEnv:
         return self.current_state
     
     def win(self, current_state):
+        self.battle_index += 1
         if self.battle_index < len(self.battles):
-            self.battle_index += 1
             current_state = self.battles[self.battle_index]
-            current_state[0].reset()
-            current_state[1].reset()
-            return current_state, +10.0, False
-        return current_state, +10.0, True
+            return current_state, +100.0, False, 'win'
+        self.battle_index = 0
+        return current_state, +30.0, True, 'win'
     
     def defeat(self, current_state):
         self.battle_index += 1
-        self.reset_index += 1
-        current_state = self.battles[self.battle_index]
-        current_state[0].reset()
-        current_state[1].reset()
-        return current_state, -30.0, False
+        if self.battle_index < len(self.battles):
+            current_state = self.battles[self.battle_index]
+            return current_state, -30.0, False, 'lost'
+        self.battle_index = 0
+        return current_state, -30.0, True, 'lost'
+
+    def draw(self, current_state):
+        self.battle_index += 1
+        if self.battle_index < len(self.battles):
+            current_state = self.battles[self.battle_index]
+            return current_state, 0.0, False, 'draw'
+        self.battle_index = 0
+        return current_state, 0.0, True, 'draw'
 
     def step(self, current_state, action):
         self.episode_step += 1
@@ -237,18 +277,23 @@ class BlobEnv:
             attacker = pokemon_a
             defender = pokemon_b
             if action >= len(pokemon_a.moves):
-                return current_state, True, -10.0
+                return current_state, -100.0, True, 'fail_move'
             move = pokemon_a.moves[action]
             print(f'Pokemon a chooses {move.name}')
-            if move.pp == 0:
+            if move.current_pp == 0:
                 print(f'Finished pp for move {move.name}, can\'t use it!')
-                return current_state, True, -10.0
+                for move in pokemon_a.moves:
+                    if move.current_pp > 0:
+                        return current_state, -100.0, True, 'fail_move'
+                print(f'All moves finished pp, continue...')
+            else:
+                apply_move(attacker, defender, move)
         else:
             attacker = pokemon_b
             defender = pokemon_a
             move = choose_move(attacker)
-            print(f'Pokemon b chooses {move.name}')
             if move is not None:
+                print(f'Pokemon b chooses {move.name}')
                 apply_move(attacker, defender, move)
 
         if defender.current_hp <= 0:
@@ -264,24 +309,45 @@ class BlobEnv:
             defender = pokemon_a
             move = choose_move(attacker)
             if move is not None:
+                print(f'Pokemon b chooses {move.name}')
                 apply_move(attacker, defender, move)
-            print(f'Pokemon b chooses {move.name}')
         else:
             attacker_label = 'a'
             attacker = pokemon_a
             defender = pokemon_b
             if action >= len(pokemon_a.moves):
-                return current_state, True, -10.0
+                return current_state, -1.0, True, 'fail_move'
             move = pokemon_a.moves[action]
             print(f'Pokemon a chooses {move.name}')
             if move.pp == 0:
                 print(f'Finished pp for move {move.name}, can\'t use it!')
-                return current_state, True, -10.0
+                for move in pokemon_a.moves:
+                    if move.current_pp > 0:
+                        return current_state, -100.0, True, 'fail_move'
+                print(f'All moves finished pp, continue...')
+                return current_state, -1.0, True, 'fail_move'
+            else:
+                apply_move(attacker, defender, move)
 
         if defender.current_hp <= 0:
             if attacker_label == 'a':
                 return self.win(current_state)
             else:
                 return self.defeat(current_state)
-        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b.hp * 100
-        return (pokemon_a, pokemon_b), reward, False
+
+        # Check for draw
+        draw = True
+        for move in pokemon_a.moves:
+            if move.current_pp > 0:
+                draw = False
+                break
+        for move in pokemon_b.moves:
+            if move.current_pp > 0:
+                draw = False
+                break
+
+        if draw:
+            return self.draw(current_state)
+
+        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b.hp * 10
+        return (pokemon_a, pokemon_b), reward, False, 'continue'
