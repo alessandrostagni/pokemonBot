@@ -11,6 +11,41 @@ from tqdm import tqdm
 
 from DQNAgent_battle import *
 
+def print_state(current_state, action):
+    print(f"""
+                == == == == == == == == =
+                Pokemon: {current_state[0].name}
+                == == == == == == == == =
+                Level: {current_state[0].level}
+                Types: {current_state[0].types}
+                HP: {current_state[0].current_hp}
+                Speed: {current_state[0].speed}
+                Attack: {current_state[0].attack}
+                Defense: {current_state[0].defense}
+                Sp.Attack: {current_state[0].special_attack}
+                Sp.Defense: {current_state[0].special_defense}
+                == == =
+                Moves
+                == == =
+                {[(move.name, move.current_pp, move.pp) for move in current_state[0].moves]}
+            """)
+    print(f"""
+                == == == == == == == == =
+                Pokemon: {current_state[1].name}
+                == == == == == == == == =
+                Level: {current_state[1].level}
+                Types: {current_state[1].types}
+                HP: {current_state[1].current_hp}
+                Speed: {current_state[1].speed}
+                Attack: {current_state[1].attack}
+                Defense: {current_state[1].defense}
+                Sp.Attack: {current_state[1].special_attack}
+                Sp.Defense: {current_state[1].special_defense}
+                == == =
+                Moves
+                == == =
+                {[(move.name, move.current_pp, move.pp) for move in current_state[1].moves]}
+            """)
 
 # Environment settings
 EPISODES = 100000
@@ -32,13 +67,14 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 m = DQNAgent().create_model()
 agent = DQNAgent()
 env = BlobEnv(N_BATTLES)
-env.create_battles(r'battles.pickle')
+#env.create_battles(r'battles.pickle')
 env.load_battles(r'battles.pickle')
 
 # For stats
 ep_rewards = [-200]
 win_battles = 0
 lost_battles = 0
+n_battles = 0
 
 
 # For more repetitive results
@@ -50,6 +86,7 @@ epsilon_summary_writer = tf.summary.create_file_writer('logs/epsilon')
 win_summary_writer = tf.summary.create_file_writer('logs/win')
 lost_summary_writer = tf.summary.create_file_writer('logs/lost')
 draw_summary_writer = tf.summary.create_file_writer('logs/draw')
+n_battles_summary_writer = tf.summary.create_file_writer('logs/n_battles')
 
 # Memory fraction, used mostly when trai8ning multiple agents
 #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
@@ -72,6 +109,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
     win = 0
     lost = 0
     draw = 0
+    n_battles = 0
 
 
     # Reset environment and get initial state
@@ -84,46 +122,15 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         if np.random.random() > epsilon:
             # Get action from Q table
             action = np.argmax(agent.get_qs(current_state))
+            print('AGENT MOVE:')
         else:
             # Get random action
             action = np.random.randint(0, env.ACTION_SPACE_SIZE)
+            print('RANDOM MOVE:')
 
         print('Action:', action)
         print('Before fighting:')
-        print(f"""
-            == == == == == == == == =
-            Pokemon: {current_state[0].name}
-            == == == == == == == == =
-            Level: {current_state[0].level}
-            Types: {current_state[0].types}
-            HP: {current_state[0].current_hp}
-            Speed: {current_state[0].speed}
-            Attack: {current_state[0].attack}
-            Defense: {current_state[0].defense}
-            Sp.Attack: {current_state[0].special_attack}
-            Sp.Defense: {current_state[0].special_defense}
-            == == =
-            Moves
-            == == =
-            {[(move.name, move.current_pp, move.pp) for move in current_state[0].moves]}
-        """)
-        print(f"""
-            == == == == == == == == =
-            Pokemon: {current_state[1].name}
-            == == == == == == == == =
-            Level: {current_state[1].level}
-            Types: {current_state[1].types}
-            HP: {current_state[1].current_hp}
-            Speed: {current_state[1].speed}
-            Attack: {current_state[1].attack}
-            Defense: {current_state[1].defense}
-            Sp.Attack: {current_state[1].special_attack}
-            Sp.Defense: {current_state[1].special_defense}
-            == == =
-            Moves
-            == == =
-            {[(move.name, move.current_pp, move.pp) for move in current_state[1].moves]}
-        """)
+        print_state(current_state, action)
 
         new_state, reward, done, outcome = env.step(current_state, action)
 
@@ -133,40 +140,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('Step: ', step)
         print('Epsilon: ', epsilon)
         print('After fighting:')
-        print(f"""
-            == == == == == == == == =
-            Pokemon: {current_state[0].name}
-            == == == == == == == == =
-            Level: {current_state[0].level}
-            Types: {current_state[0].types}
-            HP: {current_state[0].current_hp}
-            Speed: {current_state[0].speed}
-            Attack: {current_state[0].attack}
-            Defense: {current_state[0].defense}
-            Sp.Attack: {current_state[0].special_attack}
-            Sp.Defense: {current_state[0].special_defense}
-            == == =
-            Moves
-            == == =
-            {[(move.name, move.current_pp, move.pp) for move in current_state[0].moves]}
-        """)
-        print(f"""
-            == == == == == == == == =
-            Pokemon: {current_state[1].name}
-            == == == == == == == == =
-            Level: {current_state[1].level}
-            Types: {current_state[1].types}
-            HP: {current_state[1].current_hp}
-            Speed: {current_state[1].speed}
-            Attack: {current_state[1].attack}
-            Defense: {current_state[1].defense}
-            Sp.Attack: {current_state[1].special_attack}
-            Sp.Defense: {current_state[1].special_defense}
-            == == =
-            Moves
-            == == =
-            {[(move.name, move.current_pp, move.pp) for move in current_state[1].moves]}
-        """)
+        print_state(new_state, action)
         print('-------')
 
         if outcome == 'win':
@@ -188,6 +162,9 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             current_state[0].reset()
             current_state[1].reset()
             print('FAIL_MOVE')
+
+        if done:
+            n_battles = env.battle_index + 1
 
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward
@@ -213,6 +190,8 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         tf.summary.scalar('lost', lost, step=episode)
     with draw_summary_writer.as_default():
         tf.summary.scalar('draw', draw, step=episode)
+    with n_battles_summary_writer.as_default():
+        tf.summary.scalar('n_battles', n_battles, step=episode)
     ep_rewards.append(episode_reward)
     #if not episode % AGGREGATE_STATS_EVERY or episode == 1:
     average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])

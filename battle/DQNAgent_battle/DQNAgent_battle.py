@@ -239,7 +239,7 @@ class BlobEnv:
             current_state = self.battles[self.battle_index]
             return current_state, +100.0, False, 'win'
         self.battle_index = 0
-        return current_state, +30.0, True, 'win'
+        return current_state, +100.0, True, 'win'
     
     def defeat(self, current_state):
         self.battle_index += 1
@@ -257,14 +257,7 @@ class BlobEnv:
         self.battle_index = 0
         return current_state, 0.0, True, 'draw'
 
-    def step(self, current_state, action):
-        self.episode_step += 1
-        if self.episode_step == 1:
-            self.last_state = current_state
-        pokemon_a = current_state[0]
-        pokemon_b = current_state[1]
-        pokemon_b_hp_start = pokemon_b.hp
-        done = False
+    def decide_first_attacker(self, pokemon_a, pokemon_b):
         attacker_label = None
         if pokemon_a.speed > pokemon_b.speed:
             attacker_label = 'a'
@@ -272,82 +265,93 @@ class BlobEnv:
             attacker_label = 'b'
         else:
             attacker_label = np.random.choice(['a', 'b'])
+        return attacker_label
 
-        if attacker_label == 'a':
-            attacker = pokemon_a
-            defender = pokemon_b
-            if action >= len(pokemon_a.moves):
-                return current_state, -100.0, True, 'fail_move'
-            move = pokemon_a.moves[action]
-            print(f'Pokemon a chooses {move.name}')
-            if move.current_pp == 0:
-                print(f'Finished pp for move {move.name}, can\'t use it!')
-                for move in pokemon_a.moves:
-                    if move.current_pp > 0:
-                        return current_state, -100.0, True, 'fail_move'
-                print(f'All moves finished pp, continue...')
-            else:
-                apply_move(attacker, defender, move)
+    def check_move_feasibility(self, current_state, pokemon_a, action):
+        # Unfeasible action:
+        if action >= len(pokemon_a.moves):
+            return 'fail_move'
+        move = pokemon_a.moves[action]
+        print(f'Pokemon a chooses {move.name}')
+
+        # Check there are no moves with more than 0 pp that could be used by the agent
+        if move.current_pp == 0:
+            print(f'Finished pp for move {move.name}, can\'t use it!')
+            for move in pokemon_a.moves:
+                if move.current_pp > 0:
+                    return 'fail_move'
+            return 'finished_pp'
+        return 'ok'
+
+    def agent_attack(self, pokemon_a, pokemon_b, current_state, action):
+        # Assign attacker and defender roles
+        attacker = pokemon_a
+        defender = pokemon_b
+        move = pokemon_a.moves[action]
+        apply_move(attacker, defender, move)
+        return attacker, defender
+
+    def bot_attack(self, pokemon_a, pokemon_b):
+        attacker = pokemon_b
+        defender = pokemon_a
+        move = choose_move(attacker)
+        if move is not None:
+            print(f'Pokemon b chooses {move.name}')
+            apply_move(attacker, defender, move)
+        return attacker, defender
+
+    def check_winner(self, current_state, attacker, defender, pokemon_a, pokemon_b):
+        if defender == pokemon_b:
+            return self.win(current_state)
         else:
-            attacker = pokemon_b
-            defender = pokemon_a
-            move = choose_move(attacker)
-            if move is not None:
-                print(f'Pokemon b chooses {move.name}')
-                apply_move(attacker, defender, move)
+            return self.defeat(current_state)
 
-        if defender.current_hp <= 0:
-            if attacker_label == 'a':
-                return self.win(current_state)
-            else:
-                return self.defeat(current_state)
-
-        # Other pokemon attacks
-        if attacker_label == 'a':
-            attacker_label = 'b'
-            attacker = pokemon_b
-            defender = pokemon_a
-            move = choose_move(attacker)
-            if move is not None:
-                print(f'Pokemon b chooses {move.name}')
-                apply_move(attacker, defender, move)
-        else:
-            attacker_label = 'a'
-            attacker = pokemon_a
-            defender = pokemon_b
-            if action >= len(pokemon_a.moves):
-                return current_state, -1.0, True, 'fail_move'
-            move = pokemon_a.moves[action]
-            print(f'Pokemon a chooses {move.name}')
-            if move.pp == 0:
-                print(f'Finished pp for move {move.name}, can\'t use it!')
-                for move in pokemon_a.moves:
-                    if move.current_pp > 0:
-                        return current_state, -100.0, True, 'fail_move'
-                print(f'All moves finished pp, continue...')
-                return current_state, -1.0, True, 'fail_move'
-            else:
-                apply_move(attacker, defender, move)
-
-        if defender.current_hp <= 0:
-            if attacker_label == 'a':
-                return self.win(current_state)
-            else:
-                return self.defeat(current_state)
-
-        # Check for draw
+    def check_draw(self, pokemon_a, pokemon_b):
         draw = True
         for move in pokemon_a.moves:
             if move.current_pp > 0:
-                draw = False
-                break
+                return False
         for move in pokemon_b.moves:
             if move.current_pp > 0:
-                draw = False
-                break
+                return False
+        return draw
 
+    def step(self, current_state, action):
+        self.episode_step += 1
+        pokemon_a = current_state[0]
+        pokemon_b = current_state[1]
+        pokemon_b_hp_start = pokemon_b.current_hp
+        first_attacker_label = self.decide_first_attacker(pokemon_a, pokemon_b)
+
+        if first_attacker_label == 'a':
+            move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
+            if move_feasibility == 'fail_move':
+                return current_state, -100.0, True, 'fail_move'
+            elif move_feasibility == 'ok':
+                attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
+        else:
+            attacker, defender = self.bot_attack(pokemon_a, pokemon_b)
+
+        if defender.current_hp <= 0:
+            return self.check_winner(current_state, attacker, defender, pokemon_a, pokemon_b)
+
+        # Other pokemon attacks
+        if first_attacker_label == 'a':
+            attacker, defender = self.bot_attack(pokemon_a, pokemon_b)
+        else:
+            move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
+            if move_feasibility == 'fail_move':
+                return current_state, -100.0, True, 'fail_move'
+            elif move_feasibility == 'ok':
+                attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
+
+        if defender.current_hp <= 0:
+            return self.check_winner(current_state, attacker, defender, pokemon_a, pokemon_b)
+
+        # Check for draw
+        draw = self.check_draw(pokemon_a, pokemon_b)
         if draw:
             return self.draw(current_state)
 
-        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b.hp * 10
+        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
         return (pokemon_a, pokemon_b), reward, False, 'continue'
