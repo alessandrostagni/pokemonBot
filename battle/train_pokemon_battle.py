@@ -159,12 +159,9 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             draw += 1.0
             print('DRAW')
         elif outcome == 'fail_move':
-            current_state[0].reset()
-            current_state[1].reset()
             print('FAIL_MOVE')
 
-        if done:
-            n_battles = env.battle_index + 1
+        print('BATTLE INDEX:', env.battle_index + 1)
 
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward
