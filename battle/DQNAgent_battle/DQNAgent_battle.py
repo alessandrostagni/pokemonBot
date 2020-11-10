@@ -245,9 +245,9 @@ class BlobEnv:
         self.battle_index += 1
         if self.battle_index < len(self.battles):
             current_state = self.battles[self.battle_index]
-            return current_state, -30.0, False, 'lost'
+            return current_state, -10.0, True, 'lost'
         self.battle_index = 0
-        return current_state, -30.0, True, 'lost'
+        return current_state, -10.0, True, 'lost'
 
     def draw(self, current_state):
         self.battle_index += 1
@@ -326,7 +326,7 @@ class BlobEnv:
         if first_attacker_label == 'a':
             move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
             if move_feasibility == 'fail_move':
-                return current_state, -100.0, False, 'fail_move'
+                return current_state, -10.0, True, 'fail_move'
             elif move_feasibility == 'ok':
                 attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
         else:
@@ -341,7 +341,7 @@ class BlobEnv:
         else:
             move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
             if move_feasibility == 'fail_move':
-                return current_state, -100.0, False, 'fail_move'
+                return current_state, -10.0, True, 'fail_move'
             elif move_feasibility == 'ok':
                 attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
 

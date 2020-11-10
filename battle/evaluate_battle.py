@@ -132,6 +132,7 @@ while not end:
                 end = True
             current_state[0].reset()
             current_state[1].reset()
+            fail_move += 1.0
             current_state = env.battles[env.battle_index]
             print('FAIL_MOVE')
         else:
