@@ -86,7 +86,7 @@ class DQNAgent:
 
         state = [
             pokemon_a.types[0], pokemon_a.types[1],
-            pokemon_a.hp, pokemon_a.attack, pokemon_a.defense,
+            pokemon_a.current_hp, pokemon_a.attack, pokemon_a.defense,
             pokemon_a.special_attack, pokemon_b.special_defense,
             pokemon_a.speed,
             moves_data[0][0],
@@ -109,7 +109,7 @@ class DQNAgent:
             moves_data[1][4],
             moves_data[2][4],
             moves_data[3][4],
-            pokemon_b.hp, pokemon_b.types[0], pokemon_b.types[1]
+            pokemon_b.current_hp, pokemon_b.types[0], pokemon_b.types[1]
         ]
         return state
 
