@@ -131,6 +131,10 @@ class Pokemon(object):
                 setattr(move, k.replace('move_', ''), val)
             move.current_pp = move.pp
             move.type = TYPES_DICT[move.type]
+
+            # Make dragon type moves normal
+            if move.type == 15:
+                move.type = 1
             self.all_moves.append(move)
     
     def pick_moves(self):
