@@ -33,6 +33,7 @@ TYPES_DICT = {
     "steel": 17,
     "dark": 18
 }
+INVERSE_TYPES_DICT = inv_map = {v: k for k, v in TYPES_DICT.items()}
 POKEMON_AVAIL = set(list(POKEMON_STATS['pokemon'].unique()))
 VERBOSE = False
 VERBOSE_COUNT = True
@@ -301,6 +302,7 @@ def apply_move(attacker, defender, move):
     # when it is the same, a 1.5x bonus is applied
     # STAB = same type attack bonus
     stab = 1
+
     if move.type in attacker.types:
         stab = 1.5
     
@@ -313,15 +315,15 @@ def apply_move(attacker, defender, move):
     
     # grab type modifier
     modifier = 1
-    try:
-        attack_type = move.type.title()
-        for dtype in defender.types:
-            modifier *= TYPE_MODS.loc[attack_type][dtype.title()]
-    except:
-        pass
-    
-    # NOTE: attacker level is hard coded to 10
-    # level = 10
+    attack_type = move.type
+    attack_type_label = INVERSE_TYPES_DICT[attack_type].capitalize()
+    for defender_type in defender.types:
+        if defender_type != 0:
+            defender_type_label = INVERSE_TYPES_DICT[defender_type].capitalize()
+            if attack_type_label in TYPE_MODS.columns and defender_type_label in TYPE_MODS.columns:
+                modifier *= TYPE_MODS[defender_type_label][attack_type_label]
+    print('MODIFIER:', modifier)
+
     power = move.power
     if power is None:
         power = 1

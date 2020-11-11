@@ -56,7 +56,7 @@ def print_state(current_state, action):
 N_BATTLES = 10000
 
 agent = DQNAgent()
-agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\models_saved\\battle\\Yoyo__24557.64max_24557.64avg_24557.64min__1604790963.model")
+agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\models_saved\\battle\\Yoyo__1919.05max_1919.05avg_1919.05min__47_9_win_rate_1605082033.model")
 env = BlobEnv(N_BATTLES)
 env.load_battles(r'battles.pickle')
 current_state = env.reset()
@@ -96,42 +96,18 @@ while not end:
         print('-------')
         '''
         if outcome == 'win':
-            if env.battle_index + 1 < len(env.battles):
-                env.battle_index += 1
-            else:
-                end = True
-            current_state[0].reset()
-            current_state[1].reset()
             win += 1.0
             current_state = env.battles[env.battle_index]
             print('WIN')
         elif outcome == 'lost':
-            if env.battle_index + 1 < len(env.battles):
-                env.battle_index += 1
-            else:
-                end = True
-            current_state[0].reset()
-            current_state[1].reset()
             lost += 1.0
             current_state = env.battles[env.battle_index]
             print('LOST')
         elif outcome == 'draw':
-            if env.battle_index + 1 < len(env.battles):
-                env.battle_index += 1
-            else:
-                end = True
-            current_state[0].reset()
-            current_state[1].reset()
             draw += 1.0
             current_state = env.battles[env.battle_index]
             print('DRAW')
         elif outcome == 'fail_move':
-            if env.battle_index + 1 < len(env.battles):
-                env.battle_index += 1
-            else:
-                end = True
-            current_state[0].reset()
-            current_state[1].reset()
             fail_move += 1.0
             current_state = env.battles[env.battle_index]
             print('FAIL_MOVE')
