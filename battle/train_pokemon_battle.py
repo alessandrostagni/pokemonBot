@@ -67,7 +67,7 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 m = DQNAgent().create_model()
 agent = DQNAgent()
 env = BlobEnv(N_BATTLES)
-env.create_battles(r'battles_100.pickle')
+#env.create_battles(r'battles_100.pickle')
 env.load_battles(r'battles_100.pickle')
 
 # For stats
@@ -134,33 +134,6 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
         new_state, reward, done, outcome = env.step(current_state, action)
 
-        print('New state:', new_state)
-        print('Reward: ', reward)
-        print('Done: ', done)
-        print('Step: ', step)
-        print('Epsilon: ', epsilon)
-        print('After fighting:')
-        print_state(new_state, action)
-        print('-------')
-
-        if outcome == 'win':
-            current_state[0].reset()
-            current_state[1].reset()
-            win += 1.0
-            print('WIN')
-        elif outcome == 'lost':
-            current_state[0].reset()
-            current_state[1].reset()
-            lost += 1.0
-            print('LOST')
-        elif outcome == 'draw':
-            current_state[0].reset()
-            current_state[1].reset()
-            draw += 1.0
-            print('DRAW')
-        elif outcome == 'fail_move':
-            print('FAIL_MOVE')
-
         print('BATTLE INDEX:', env.battle_index + 1)
 
         # Transform new continous state to new discrete state and count reward
@@ -172,6 +145,27 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         # Every step we update replay memory and train main network
         agent.update_replay_memory((current_state, action, reward, new_state, done))
         agent.train(done, step)
+
+        print('New state:', new_state)
+        print('Reward: ', reward)
+        print('Done: ', done)
+        print('Step: ', step)
+        print('Epsilon: ', epsilon)
+        print('After fighting:')
+        print_state(new_state, action)
+        print('-------')
+
+        if outcome == 'win':
+            win += 1.0
+            print('WIN')
+        elif outcome == 'lost':
+            lost += 1.0
+            print('LOST')
+        elif outcome == 'draw':
+            draw += 1.0
+            print('DRAW')
+        elif outcome == 'fail_move':
+            print('FAIL_MOVE')
 
         current_state = new_state
         step += 1
