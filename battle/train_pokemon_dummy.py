@@ -49,7 +49,7 @@ def print_state(current_state, action):
 
 # Environment settings
 EPISODES = 10000
-N_BATTLES = 1000
+N_BATTLES = 100
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
@@ -67,8 +67,8 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 m = DQNAgent().create_model()
 agent = DQNAgent()
 env = BlobEnv(N_BATTLES)
-env.create_battles(r'battles_dummy.pickle')
-env.load_battles(r'battles_dummy.pickle')
+env.create_battles(r'battles_dummy_100.pickle')
+env.load_battles(r'battles_dummy_100.pickle')
 
 # For stats
 ep_rewards = [-200]
@@ -123,6 +123,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             # Get random action
             action = np.random.randint(0, len(current_state[0].moves))
             print('RANDOM MOVE:')
+            print('0 , ', len(current_state[0].moves))
 
         print('Action:', action)
         print('Before fighting:')

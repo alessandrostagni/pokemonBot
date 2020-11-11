@@ -250,7 +250,12 @@ class BlobEnv:
 
         # Check there are no moves with more than 0 pp that could be used by the agent
         if move.current_pp == 0:
-            print(f'Finished pp for move {move.name}, can\'t use it!')
+            for move in pokemon_a.moves:
+                if move.current_pp > 0:
+                    print(f'Finished pp for move {move.name}, can\'t use it!')
+                    return 'fail_move'
+            print(f'All pp for all moves finished. Remove battle from list!')
+            self.battles.pop(self.battle_index)
             return 'fail_move'
         return 'ok'
 
@@ -293,5 +298,5 @@ class BlobEnv:
         if pokemon_b.current_hp <= 0:
             return self.win(current_state)
 
-        reward = - (100.0 - (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100)
+        reward = - (100.0 - (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 10)
         return (pokemon_a, pokemon_b), reward, False, 'continue'
