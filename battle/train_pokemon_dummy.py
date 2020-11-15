@@ -49,11 +49,11 @@ def print_state(current_state, action):
 
 # Environment settings
 EPISODES = 10000
-N_BATTLES = 100
-
+N_BATTLES = 1000
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
-EPSILON_DECAY = 0.99975
+#EPSILON_DECAY = 0.99975
+EPSILON_DECAY = 0.96
 MIN_EPSILON = 0.001
 MODEL_NAME = 'Yoyo'
 # epsilon = 0
@@ -67,8 +67,8 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 m = DQNAgent().create_model()
 agent = DQNAgent()
 env = BlobEnv(N_BATTLES)
-env.create_battles(r'battles_dummy_100.pickle')
-env.load_battles(r'battles_dummy_100.pickle')
+#env.create_battles(r'battles_dummy_1000.pickle')
+env.load_battles(r'battles_dummy_1000.pickle')
 
 # For stats
 ep_rewards = [-200]

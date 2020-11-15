@@ -8,7 +8,7 @@ import random
 import time
 from tqdm import tqdm
 
-from DQNAgent_battle import *
+from DQNAgent_battle_dummy import *
 
 
 def print_state(current_state, action):
@@ -53,12 +53,13 @@ def print_state(current_state, action):
 # For more repetitive results
 
 # Instantiate battles
-N_BATTLES = 10000
+N_BATTLES = 1000
 
 agent = DQNAgent()
-agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\models_saved\\battle\\Yoyo__1919.05max_1919.05avg_1919.05min__47_9_win_rate_1605082033.model")
+agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\battle\\models_battle\\Yoyo__44102.47max_44102.47avg_44102.47min__1605264868.model")
 env = BlobEnv(N_BATTLES)
-env.load_battles(r'battles.pickle')
+env.create_battles('battles_1000_eval.pickle')
+env.load_battles(r'battles_1000_eval.pickle')
 current_state = env.reset()
 
 # Run battles
@@ -68,53 +69,20 @@ draw = 0.0
 lost = 0.0
 fail_move = 0.0
 
-end = False
-
-while not end:
-
-    # Update tensorboard step every episode
-    # agent.tensorboard.step = episode
-
-    # Reset flag and start iterating until episode ends
-    done = False
-    while not done:
-        action = 0
-        '''
-        print('Action:', action)
-        print('Before fighting:')
-        print_state(current_state, action)
-        '''
+for battle in env.battles:
+    current_state = battle
+    while battle[0].current_hp > 0 and battle[1].current_hp > 0:
+        env.battles = [battle]
         action = np.argmax(agent.get_qs(current_state))
+        new_state, reward, done, outcome = env.step_real_battle(current_state, action)
+        new_state = current_state
 
-        new_state, reward, done, outcome = env.step(current_state, action)
-        '''
-        print('New state:', new_state)
-        print('Reward: ', reward)
-        print('Done: ', done)
-        print('After fighting:')
-        print_state(new_state, action)
-        print('-------')
-        '''
-        if outcome == 'win':
-            win += 1.0
-            current_state = env.battles[env.battle_index]
-            print('WIN')
-        elif outcome == 'lost':
-            lost += 1.0
-            current_state = env.battles[env.battle_index]
-            print('LOST')
-        elif outcome == 'draw':
-            draw += 1.0
-            current_state = env.battles[env.battle_index]
-            print('DRAW')
-        elif outcome == 'fail_move':
-            fail_move += 1.0
-            current_state = env.battles[env.battle_index]
-            print('FAIL_MOVE')
-        else:
-            current_state = new_state
-    if env.battle_index > 1000:
-        end = True
+    if battle[0].current_hp <= 0:
+        lost += 1.0
+    elif battle[1].current_hp <= 0:
+        win += 1.0
+
+
 print('Fail moves:', fail_move)
 print('Win:', win)
 print('Lost:', lost)

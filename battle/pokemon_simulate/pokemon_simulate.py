@@ -284,6 +284,8 @@ def calculate_damage(a, b, c, d, x, y, crit):
     damage = np.floor(damage / 50) + 2
     damage = np.floor(damage * x)    
     damage = np.floor(damage * y)
+    if y > 0 and damage == 0:
+        damage = 1
     
     # This is how you could compute the minimum and maximum
     # damage that this ability will do. Only for reference.
@@ -291,6 +293,23 @@ def calculate_damage(a, b, c, d, x, y, crit):
     # max_damage = np.floor((damage * 255) / 255)
     
     return np.floor((damage * z) / 255)
+
+def is_battle_winnable(attacker, defender):
+    n_zeros = 0
+    for move in attacker.moves:
+        attack_type = move.type
+        attack_type_label = INVERSE_TYPES_DICT[attack_type].capitalize()
+        for defender_type in defender.types:
+            if defender_type != 0:
+                defender_type_label = INVERSE_TYPES_DICT[defender_type].capitalize()
+                if attack_type_label in TYPE_MODS.columns and defender_type_label in TYPE_MODS.columns:
+                    modifier = TYPE_MODS[defender_type_label][attack_type_label]
+                    if modifier == 0:
+                        n_zeros += 1
+    if n_zeros < floor(len(attacker.moves) / 2.0):
+        return True
+    return False
+
 
 
 def apply_move(attacker, defender, move):
@@ -347,6 +366,10 @@ def apply_move(attacker, defender, move):
     
     # apply damage to pokemon and reduce move pp
     defender.current_hp -= damage
+
+    #############################################
+    # REMOVING PP DECREASE FOR TRAINING PURPOSE #
+    #############################################
     move.current_pp -= 1
     
     if VERBOSE:

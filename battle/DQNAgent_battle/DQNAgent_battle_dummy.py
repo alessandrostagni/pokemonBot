@@ -113,8 +113,8 @@ class DQNAgent:
 
     def create_model(self):
         model = Sequential()
-        model.add(Dense(8, input_shape=(30,)))
-        model.add(Dense(16))
+        model.add(Dense(32, input_shape=(30,)))
+        model.add(Dense(64))
         model.add(Dense(ACTION_SPACE_SIZE, activation='linear'))
         model.compile(loss="mean_squared_error", optimizer=Adam(lr=0.001))
         return model
@@ -211,12 +211,15 @@ class BlobEnv:
         self.current_state = None
 
     def create_battles(self, path):
-        base_level = 0
-        for i in range(0, self.n_battles):
-            base_level += 1
-            self.battles.append(get_random_battle(base_level))
-            if base_level > 100:
-                base_level = 1
+        base_level = 1
+        while len(self.battles) < self.n_battles:
+            ### HARDCODE LEVEL FOR TESTING
+            b = get_random_battle(50)
+            if is_battle_winnable(b[0], b[1]):
+                self.battles.append(b)
+                base_level += 1
+                if base_level > 100:
+                    base_level = 1
         self.current_state = self.battles[0]
         pickle.dump(self.battles, open(path, 'wb'))
 
@@ -254,8 +257,8 @@ class BlobEnv:
                 if move.current_pp > 0:
                     print(f'Finished pp for move {move.name}, can\'t use it!')
                     return 'fail_move'
-            print(f'All pp for all moves finished. Remove battle from list!')
-            self.battles.pop(self.battle_index)
+            print('THIS SHOULD NOT HAPPEN!')
+            stop
             return 'fail_move'
         return 'ok'
 
@@ -291,12 +294,88 @@ class BlobEnv:
 
         move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
         if move_feasibility == 'fail_move':
-            return current_state, -100.0, True, 'fail_move'
+            return current_state, -1000.0, True, 'fail_move'
         elif move_feasibility == 'ok':
             attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
 
         if pokemon_b.current_hp <= 0:
             return self.win(current_state)
 
-        reward = - (100.0 - (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 10)
+        reward = - (100.0 - ((pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start) * 100) / 10
+        return (pokemon_a, pokemon_b), reward, False, 'continue'
+
+    # METHODS USED FOR EVALUATION ONLY #
+
+    def win(self, current_state):
+        self.battle_index += 1
+        if self.battle_index < len(self.battles):
+            current_state = self.battles[self.battle_index]
+            return current_state, +100.0, False, 'win'
+        self.battle_index = 0
+        return current_state, +100.0, True, 'win'
+
+    def defeat(self, current_state):
+        self.battle_index += 1
+        if self.battle_index < len(self.battles):
+            current_state = self.battles[self.battle_index]
+            return current_state, -100.0, False, 'lost'
+        self.battle_index = 0
+        return current_state, -100.0, True, 'lost'
+
+    def bot_attack(self, pokemon_a, pokemon_b):
+        attacker = pokemon_b
+        defender = pokemon_a
+        move = choose_move(attacker)
+        if move is not None:
+            print(f'Pokemon b chooses {move.name}')
+            apply_move(attacker, defender, move)
+        return attacker, defender
+
+    def decide_first_attacker(self, pokemon_a, pokemon_b):
+        attacker_label = None
+        if pokemon_a.speed > pokemon_b.speed:
+            return 'a'
+        elif pokemon_a.speed < pokemon_b.speed:
+            return 'b'
+        return np.random.choice(['a', 'b'])
+
+    def step_real_battle(self, current_state, action):
+        pokemon_a = current_state[0]
+        pokemon_b = current_state[1]
+        pokemon_b_hp_start = pokemon_b.current_hp
+        first_attacker_label = self.decide_first_attacker(pokemon_a, pokemon_b)
+        print('FIRST ATTACKER:')
+        print(first_attacker_label)
+
+        if first_attacker_label == 'a':
+            move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
+            if move_feasibility == 'fail_move':
+                return current_state, -100.0, True, 'fail_move'
+            elif move_feasibility == 'ok':
+                attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
+        else:
+            attacker, defender = self.bot_attack(pokemon_a, pokemon_b)
+
+        if defender.current_hp <= 0:
+            return self.check_winner(current_state, attacker, defender, pokemon_a, pokemon_b)
+
+        # Other pokemon attacks
+        if first_attacker_label == 'a':
+            attacker, defender = self.bot_attack(pokemon_a, pokemon_b)
+        else:
+            move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
+            if move_feasibility == 'fail_move':
+                return current_state, -100.0, True, 'fail_move'
+            elif move_feasibility == 'ok':
+                attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
+
+        if defender.current_hp <= 0:
+            return self.check_winner(current_state, attacker, defender, pokemon_a, pokemon_b)
+
+        # Check for draw
+        draw = self.check_draw(pokemon_a, pokemon_b)
+        if draw:
+            return self.draw(current_state)
+
+        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
         return (pokemon_a, pokemon_b), reward, False, 'continue'
