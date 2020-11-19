@@ -357,3 +357,45 @@ class BlobEnv:
 
         reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
         return (pokemon_a, pokemon_b), reward, False, 'continue'
+
+    def step_real_battle(self, current_state, action):
+        pokemon_a = current_state[0]
+        pokemon_b = current_state[1]
+        pokemon_b_hp_start = pokemon_b.current_hp
+        first_attacker_label = self.decide_first_attacker(pokemon_a, pokemon_b)
+        print('FIRST ATTACKER:')
+        print(first_attacker_label)
+
+        if first_attacker_label == 'a':
+            move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
+            if move_feasibility == 'fail_move':
+                return current_state, -100.0, True, 'fail_move'
+            elif move_feasibility == 'ok':
+                attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
+        else:
+            attacker, defender = self.bot_attack(pokemon_a, pokemon_b)
+
+        if defender.current_hp <= 0:
+            return self.check_winner(current_state, attacker, defender, pokemon_a, pokemon_b)
+
+        # Other pokemon attacks
+        if first_attacker_label == 'a':
+            attacker, defender = self.bot_attack(pokemon_a, pokemon_b)
+        else:
+            move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
+            if move_feasibility == 'fail_move':
+                return current_state, -100.0, True, 'fail_move'
+            elif move_feasibility == 'ok':
+                attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
+
+        if defender.current_hp <= 0:
+            return self.check_winner(current_state, attacker, defender, pokemon_a, pokemon_b)
+
+        # Check for draw
+        draw = self.check_draw(pokemon_a, pokemon_b)
+        if draw:
+            return self.draw(current_state)
+
+        #reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
+        reward = -10
+        return (pokemon_a, pokemon_b), reward, False, 'continue'

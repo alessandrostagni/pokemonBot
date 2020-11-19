@@ -8,7 +8,7 @@ import random
 import time
 from tqdm import tqdm
 
-from DQNAgent_battle_dummy import *
+from DQNAgent_battle_dummy_controlled import *
 
 
 def print_state(current_state, action):
@@ -53,13 +53,14 @@ def print_state(current_state, action):
 # For more repetitive results
 
 # Instantiate battles
-N_BATTLES = 1000
+N_BATTLES = 10000
 
 agent = DQNAgent()
-agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\battle\\models_battle\\Yoyo__44102.47max_44102.47avg_44102.47min__1605264868.model")
-env = BlobEnv(N_BATTLES)
-env.create_battles('battles_1000_eval.pickle')
-env.load_battles(r'battles_1000_eval.pickle')
+agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\battle\\models_battle\\episode_270_reward_7577.13_time__1605779108.model")
+env = BlobEnv(N_BATTLES, 0)
+#env.create_battles('battles_dummy_10000_eval.pickle')
+# env.load_battles(r'battles_1000_eval.pickle')
+env.load_battles(r'battles_dummy_10000_eval.pickle')
 current_state = env.reset()
 
 # Run battles
@@ -71,16 +72,20 @@ fail_move = 0.0
 
 for battle in env.battles:
     current_state = battle
-    while battle[0].current_hp > 0 and battle[1].current_hp > 0:
-        env.battles = [battle]
-        action = np.argmax(agent.get_qs(current_state))
-        new_state, reward, done, outcome = env.step_real_battle(current_state, action)
-        new_state = current_state
+    outcome = 'ok'
+    while battle[0].current_hp > 0 and battle[1].current_hp > 0 and outcome != 'fail_move':
+        action = np.argmax(agent.get_qs(battle))
+        # print_state(battle, action)
+        new_state, reward, done, outcome = env.step_real_battle(battle, action)
 
     if battle[0].current_hp <= 0:
         lost += 1.0
     elif battle[1].current_hp <= 0:
         win += 1.0
+    elif outcome == 'fail_move':
+        fail_move += 1.0
+    print(win)
+    print(lost)
 
 
 print('Fail moves:', fail_move)

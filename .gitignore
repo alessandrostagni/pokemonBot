@@ -1,6 +1,6 @@
 # Custom
 models_simulation/
-battle/models_battle
+battle/models_battle*
 states/
 logs/
 .idea

@@ -20,12 +20,13 @@ from pokemon_simulate import *
 
 ACTION_SPACE_SIZE = 4
 MODEL_NAME = "Yoyo"
-DISCOUNT = 0.99
+DISCOUNT = 0.1
 REPLAY_MEMORY_SIZE = 100000  # How many last steps to keep for model training
-MIN_REPLAY_MEMORY_SIZE = 100 # Minimum number of steps in a memory to start training
+MIN_REPLAY_MEMORY_SIZE = 1000  # Minimum number of steps in a memory to start training
 MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
 UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
 MAX_STEPS = 200
+MAX_SAME_BATTLE = 70
 
 ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
 DATA_DIR = os.path.join(ROOT_DIR, '../data')
@@ -196,15 +197,15 @@ class DQNAgent:
 
 class BlobEnv:
 
-    def __init__(self, n_battles):
+    def __init__(self, n_battles, start_index):
         self.n_battles = n_battles
         self.ACTION_SPACE_SIZE = 4
         self.battles = []
         self.first_attack = True
         self.episode_step = 0
-        self.battle_index = 0
+        self.battle_index = start_index
         self.reset_index = 0
-        self.current_state = None
+        self.same_battle = 1
 
     def create_battles(self, path):
         base_level = 1
@@ -216,21 +217,18 @@ class BlobEnv:
                 base_level += 1
                 if base_level > 100:
                     base_level = 1
-        self.current_state = self.battles[0]
         pickle.dump(self.battles, open(path, 'wb'))
 
     def load_battles(self, path):
         self.battles = pickle.load(open(path, 'rb'))
-        self.current_state = self.battles[0]
 
     def reset(self):
-        self.battle_index = self.reset_index
         self.episode_step = 0
         for b in self.battles:
             b[0].reset()
             b[1].reset()
         current_state = self.battles[self.battle_index]
-        return self.current_state
+        return current_state
     
     def win(self, current_state):
         self.battle_index += 1
@@ -252,9 +250,8 @@ class BlobEnv:
             for move in pokemon_a.moves:
                 if move.current_pp > 0:
                     print(f'Finished pp for move {move.name}, can\'t use it!')
-                    return 'ok'
-            print('THIS SHOULD NOT HAPPEN!')
-            stop
+                    return 'fail_move'
+            raise RuntimeError('THIS SHOULD NOT HAPPEN!')
             return 'fail_move'
         return 'ok'
 
@@ -290,18 +287,34 @@ class BlobEnv:
 
         move_feasibility = self.check_move_feasibility(current_state, pokemon_a, action)
         if move_feasibility == 'fail_move':
-            return current_state, -1000.0, True, 'fail_move'
+            return current_state, -100.0, True, 'fail_move'
         elif move_feasibility == 'ok':
             attacker, defender = self.agent_attack(pokemon_a, pokemon_b, current_state, action)
 
         if pokemon_b.current_hp <= 0:
-            return self.win(current_state)
+            return self.win_train(current_state)
 
         #reward = - (100.0 - ((pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start) * 100) / 10
         reward = -1.0
         return (pokemon_a, pokemon_b), reward, False, 'continue'
 
-    # METHODS USED FOR EVALUATION ONLY #
+    def win_train(self, current_state):
+        if self.same_battle >= MAX_SAME_BATTLE:
+            self.battle_index += 1
+            self.same_battle = 1
+            done = True
+            if self.battle_index < len(self.battles):
+                current_state = self.battles[self.battle_index]
+                return current_state, +100.0, True, 'win'
+            else:
+                self.battle_index = 0
+        self.same_battle += 1.0
+        new_state = tuple(current_state)
+        current_state[0].reset()
+        current_state[1].reset()
+        return new_state, +100.0, True, 'win'
+
+    # METHODS USED FOR EVALUATION ONLY
 
     def win(self, current_state):
         self.battle_index += 1
@@ -374,5 +387,6 @@ class BlobEnv:
         if draw:
             return self.draw(current_state)
 
-        reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
+        #reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
+        reward = -10
         return (pokemon_a, pokemon_b), reward, False, 'continue'

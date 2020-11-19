@@ -9,7 +9,7 @@ import tensorflow as tf
 import time
 from tqdm import tqdm
 
-from DQNAgent_battle_dummy import *
+from DQNAgent_battle_dummy_controlled import *
 
 def print_state(current_state, action):
     print(f"""
@@ -48,26 +48,31 @@ def print_state(current_state, action):
             """)
 
 # Environment settings
-EPISODES = 10000
+START_EPSILON = 0.90
+EPISODES = 10000000
 N_BATTLES = 10000
 # Exploration settings
-epsilon = 1  # not a constant, going to be decayed
+epsilon = START_EPSILON  # not a constant, going to be decayed
 #EPSILON_DECAY = 0.99975
 EPSILON_DECAY = 0.96
 MIN_EPSILON = 0.001
 MODEL_NAME = 'Yoyo'
+#START_INDEX = 2318
+#START_EPISODE = 162955
+START_INDEX = 0
+START_EPISODE = 0
 # epsilon = 0
 # EPSILON_DECAY = 0
 # MIN_EPSILON = 0
 
 #  Stats settings
-AGGREGATE_STATS_EVERY = 1  # episodes
+AGGREGATE_STATS_EVERY = 3  # episodes
 
 
-m = DQNAgent().create_model()
+#m.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\battle\\models_battle\\episode_162876_reward___89.07_time__1605642885.model")
 agent = DQNAgent()
-env = BlobEnv(N_BATTLES)
-env.create_battles(r'battles_dummy_10000.pickle')
+env = BlobEnv(N_BATTLES, START_INDEX)
+#env.create_battles(r'battles_dummy_10000.pickle')
 env.load_battles(r'battles_dummy_10000.pickle')
 
 # For stats
@@ -95,7 +100,7 @@ if not os.path.isdir('models_battle'):
     os.makedirs('models_battle')
 
 # Iterate over episodes
-for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
+for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episodes'):
 
     # Update tensorboard step every episode
     # agent.tensorboard.step = episode
@@ -125,13 +130,23 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             print('RANDOM MOVE:')
             print('0 , ', len(current_state[0].moves))
 
+        '''
         print('Action:', action)
         print('Before fighting:')
         print_state(current_state, action)
-
+        '''
+        old_battle_index = env.battle_index
         new_state, reward, done, outcome = env.step(current_state, action)
+        new_battle_index = env.battle_index
+        if new_battle_index != old_battle_index:
+            epsilon = START_EPSILON
+            n_battles += 1.0
 
         print('BATTLE INDEX:', env.battle_index + 1)
+        print('SAME BATTLE:', env.same_battle)
+        print(new_state[0].name)
+        print(new_state[1].name)
+        print('---------------')
 
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward
@@ -143,6 +158,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         agent.update_replay_memory((current_state, action, reward, new_state, done))
         agent.train(done, step)
 
+        '''
         print('New state:', new_state)
         print('Reward: ', reward)
         print('Done: ', done)
@@ -151,11 +167,11 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('After fighting:')
         print_state(new_state, action)
         print('-------')
+        '''
 
         if outcome == 'win':
             win += 1.0
             print('WIN')
-            n_battles += 1.0
         elif outcome == 'fail_move':
             print('FAIL_MOVE')
 
@@ -174,13 +190,14 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
     ep_rewards.append(episode_reward)
     #if not episode % AGGREGATE_STATS_EVERY or episode == 1:
     average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
+    # min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
+    # max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
     # agent.tensorboard.update_stats(reward_avg=average_reward, reward_min=min_reward, reward_max=max_reward, epsilon=epsilon)
 
     # Save model, but only when min reward is greater or equal a set value
     #if min_reward >= MIN_REWARD:
-    agent.model.save(f'models_battle/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
+    if not episode % AGGREGATE_STATS_EVERY or episode == 1:
+        agent.model.save(f'models_battle/episode_{episode}_reward_{average_reward:_>7.2f}_time__{int(time.time())}.model')
 
     # Decay epsilon
     if epsilon > MIN_EPSILON:
