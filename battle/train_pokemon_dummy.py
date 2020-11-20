@@ -2,7 +2,7 @@
 Code edited from:
 https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
 
-Trains a DQNAgent, saves models snapshots and tensorboard logs.
+Trains a DQNAgent against a dummy, saves models snapshots and tensorboard logs.
 """
 
 import tensorflow as tf
@@ -163,14 +163,9 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
         tf.summary.scalar('epsilon', epsilon, step=episode)
     with win_summary_writer.as_default():
         tf.summary.scalar('win', win, step=episode)
-    with n_battles_summary_writer.as_default():
-        tf.summary.scalar('n_battles', n_battles, step=episode)
     ep_rewards.append(episode_reward)
     if not episode % AGGREGATE_STATS_EVERY or episode == 1:
         average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:]) / len(ep_rewards[-AGGREGATE_STATS_EVERY:])
-
-    # Save model, but only when min reward is greater or equal a set value
-    if not episode % AGGREGATE_STATS_EVERY or episode == 1:
         agent.model.save(
             f'models_battle/episode_{episode}_reward_{average_reward:_>7.2f}_time__{int(time.time())}.model'
         )

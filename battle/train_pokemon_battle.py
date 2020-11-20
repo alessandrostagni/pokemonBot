@@ -1,51 +1,55 @@
-## Code edited from: https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/ ###
+"""
+Code edited from:
+https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
 
-import os
-import sys
+Trains a DQNAgent against real battles, saves models snapshots and tensorboard logs.
+"""
 
-import numpy as np
-import random
-import tensorflow as tf
 import time
+
+import tensorflow as tf
 from tqdm import tqdm
 
 from DQNAgent_battle import *
+from DQNAgent_battle import create_model
 
-def print_state(current_state, action):
+
+def print_state(state):
     print(f"""
                 == == == == == == == == =
-                Pokemon: {current_state[0].name}
+                Pokemon: {state[0].name}
                 == == == == == == == == =
-                Level: {current_state[0].level}
-                Types: {current_state[0].types}
-                HP: {current_state[0].current_hp}
-                Speed: {current_state[0].speed}
-                Attack: {current_state[0].attack}
-                Defense: {current_state[0].defense}
-                Sp.Attack: {current_state[0].special_attack}
-                Sp.Defense: {current_state[0].special_defense}
+                Level: {state[0].level}
+                Types: {state[0].types}
+                HP: {state[0].current_hp}
+                Speed: {state[0].speed}
+                Attack: {state[0].attack}
+                Defense: {state[0].defense}
+                Sp.Attack: {state[0].special_attack}
+                Sp.Defense: {state[0].special_defense}
                 == == =
                 Moves
                 == == =
-                {[(move.name, move.current_pp, move.pp) for move in current_state[0].moves]}
+                {[(move.name, move.current_pp, move.pp) for move in state[0].moves]}
             """)
     print(f"""
                 == == == == == == == == =
-                Pokemon: {current_state[1].name}
+                Pokemon: {state[1].name}
                 == == == == == == == == =
-                Level: {current_state[1].level}
-                Types: {current_state[1].types}
-                HP: {current_state[1].current_hp}
-                Speed: {current_state[1].speed}
-                Attack: {current_state[1].attack}
-                Defense: {current_state[1].defense}
-                Sp.Attack: {current_state[1].special_attack}
-                Sp.Defense: {current_state[1].special_defense}
+                Level: {state[1].level}
+                Types: {state[1].types}
+                HP: {state[1].current_hp}
+                Speed: {state[1].speed}
+                Attack: {state[1].attack}
+                Defense: {state[1].defense}
+                Sp.Attack: {state[1].special_attack}
+                Sp.Defense: {state[1].special_defense}
                 == == =
                 Moves
                 == == =
-                {[(move.name, move.current_pp, move.pp) for move in current_state[1].moves]}
+                {[(move.name, move.current_pp, move.pp) for move in state[1].moves]}
             """)
+
 
 # Environment settings
 EPISODES = 10000
@@ -64,11 +68,11 @@ MODEL_NAME = 'Yoyo'
 AGGREGATE_STATS_EVERY = 1  # episodes
 
 
-m = DQNAgent().create_model()
+m = create_model()
 agent = DQNAgent()
 env = BlobEnv(N_BATTLES)
-#env.create_battles(r'battles_100.pickle')
-env.load_battles(r'battles_100.pickle')
+env.create_battles(r'battles_100.pickle')
+# env.load_battles(r'battles_100.pickle')
 
 # For stats
 ep_rewards = [-200]
@@ -87,10 +91,6 @@ win_summary_writer = tf.summary.create_file_writer('logs/win')
 lost_summary_writer = tf.summary.create_file_writer('logs/lost')
 draw_summary_writer = tf.summary.create_file_writer('logs/draw')
 n_battles_summary_writer = tf.summary.create_file_writer('logs/n_battles')
-
-# Memory fraction, used mostly when trai8ning multiple agents
-#gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
-#backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
 
 # Create models folder
 if not os.path.isdir('models_battle'):
@@ -111,7 +111,6 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
     draw = 0
     n_battles = 0
 
-
     # Reset environment and get initial state
     current_state = env.reset()
 
@@ -130,7 +129,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
         print('Action:', action)
         print('Before fighting:')
-        print_state(current_state, action)
+        print_state(current_state)
 
         new_state, reward, done, outcome = env.step(current_state, action)
 
@@ -144,7 +143,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
         # Every step we update replay memory and train main network
         agent.update_replay_memory((current_state, action, reward, new_state, done))
-        agent.train(done, step)
+        agent.train(done)
 
         print('New state:', new_state)
         print('Reward: ', reward)
@@ -152,7 +151,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('Step: ', step)
         print('Epsilon: ', epsilon)
         print('After fighting:')
-        print_state(new_state, action)
+        print_state(new_state)
         print('-------')
 
         if outcome == 'win':
@@ -184,15 +183,13 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
     with n_battles_summary_writer.as_default():
         tf.summary.scalar('n_battles', n_battles, step=episode)
     ep_rewards.append(episode_reward)
-    #if not episode % AGGREGATE_STATS_EVERY or episode == 1:
-    average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    # agent.tensorboard.update_stats(reward_avg=average_reward, reward_min=min_reward, reward_max=max_reward, epsilon=epsilon)
+    if not episode % AGGREGATE_STATS_EVERY or episode == 1:
+        average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])
+        min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
+        max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
 
-    # Save model, but only when min reward is greater or equal a set value
-    #if min_reward >= MIN_REWARD:
-    agent.model.save(f'models_battle/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
+    agent.model.save(f'models_battle/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f} \
+                     avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
 
     # Decay epsilon
     if epsilon > MIN_EPSILON:

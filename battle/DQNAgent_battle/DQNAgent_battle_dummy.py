@@ -2,7 +2,7 @@
 Code edited from:
 https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
 
-DQNAgent trained by letting a pokemon playing the same battle MAX_SAME_BATTLE times
+DQNAgent trained by letting a pokemon play the same battle MAX_SAME_BATTLE times
 before moving to the next battle.
 Note that the Q values the agent is meant to learn are moving but also lower as related to only one battle.
 """
