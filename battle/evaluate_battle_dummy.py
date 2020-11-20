@@ -1,66 +1,20 @@
-## Code edited from: https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/ ###
+"""
+Code edited from:
+https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
 
-import os
-import sys
-
-import numpy as np
-import random
-import time
-from tqdm import tqdm
-
+Evaluate an agent through a series of battles.
+Print win rate on screen.
+"""
 from DQNAgent_dummy import *
-
-
-def print_state(current_state, action):
-    print(f"""
-                == == == == == == == == =
-                Pokemon: {current_state[0].name}
-                == == == == == == == == =
-                Level: {current_state[0].level}
-                Types: {current_state[0].types}
-                HP: {current_state[0].current_hp}
-                Speed: {current_state[0].speed}
-                Attack: {current_state[0].attack}
-                Defense: {current_state[0].defense}
-                Sp.Attack: {current_state[0].special_attack}
-                Sp.Defense: {current_state[0].special_defense}
-                == == =
-                Moves
-                == == =
-                {[(move.name, move.current_pp, move.pp) for move in current_state[0].moves]}
-            """)
-    print(f"""
-                == == == == == == == == =
-                Pokemon: {current_state[1].name}
-                == == == == == == == == =
-                Level: {current_state[1].level}
-                Types: {current_state[1].types}
-                HP: {current_state[1].current_hp}
-                Speed: {current_state[1].speed}
-                Attack: {current_state[1].attack}
-                Defense: {current_state[1].defense}
-                Sp.Attack: {current_state[1].special_attack}
-                Sp.Defense: {current_state[1].special_defense}
-                == == =
-                Moves
-                == == =
-                {[(move.name, move.current_pp, move.pp) for move in current_state[1].moves]}
-            """)
-
-
-# Environment settings
-
-# For more repetitive results
 
 # Instantiate battles
 N_BATTLES = 10000
 
 agent = DQNAgent()
-agent.load_model("C:\\Users\\darth\\PycharmProjects\\pokemonBot\\battle\\models_battle\\episode_270_reward_7577.13_time__1605779108.model")
+agent.load_model(f"MODEL_PATH_HERE")
 env = BlobEnv(N_BATTLES, 0)
-#env.create_battles('battles_dummy_10000_eval.pickle')
-# env.load_battles(r'battles_1000_eval.pickle')
-env.load_battles(r'battles_dummy_10000_eval.pickle')
+# env.create_battles(r'battles_dummy_10000_eval.pickle')
+env.load_battles(r'battles_1000_eval.pickle')
 current_state = env.reset()
 
 # Run battles
@@ -75,7 +29,6 @@ for battle in env.battles:
     outcome = 'ok'
     while battle[0].current_hp > 0 and battle[1].current_hp > 0 and outcome != 'fail_move':
         action = np.argmax(agent.get_qs(battle))
-        # print_state(battle, action)
         new_state, reward, done, outcome = env.step_real_battle(battle, action)
 
     if battle[0].current_hp <= 0:

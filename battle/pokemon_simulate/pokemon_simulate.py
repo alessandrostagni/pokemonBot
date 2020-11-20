@@ -1,3 +1,8 @@
+"""
+Code edited from:
+https://github.com/tylerwmarrs/pokemon-battle-simulation
+"""
+
 from multiprocessing import Pool, cpu_count
 import os
 import random
@@ -517,7 +522,7 @@ def get_random_battle(base_level):
     return (Pokemon(random_pokemon_a, level_a), Pokemon(random_pokemon_b, level_b))
 
 
-def battle_many(opponents):
+def simulate_battle_many(opponents):
     """
     Parallelizable function that takes a tuple of pokemon names to battle.
     
@@ -548,7 +553,7 @@ def battle_many(opponents):
     }
 
     for _ in range(NUM_SIMULATIONS):
-        result = battle(pokemon, pokemon_b)
+        result = simulate_battle(pokemon, pokemon_b)
         if result['winner'] == pokemon.name:
             battle_stats['a_wins'] += 1
         elif result['winner'] == pokemon_b.name:
@@ -576,7 +581,6 @@ def main():
         
         if p.has_moves:
             valid_pokemon.append(p.name)
-        
 
     # construct pokemon matches as list of list where each sub-list contains
     # the two pokemon names that will battle
@@ -595,7 +599,7 @@ def main():
     
     # simulate the battles in parallel
     with Pool(cpu_count()) as pool:
-        stats = pool.map(battle_many, matches)
+        stats = pool.map(simulate_battle_many, matches)
     
     # output the results
     pd.concat(stats).to_csv(os.path.join(DATA_DIR, 'results', 'simulation_stats.csv'), index=False)
