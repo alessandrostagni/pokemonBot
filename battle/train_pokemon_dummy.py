@@ -9,7 +9,7 @@ import tensorflow as tf
 import time
 from tqdm import tqdm
 
-from DQNAgent_battle_dummy_controlled import *
+from DQNAgent_battle_dummy import *
 
 
 def print_state(state):
@@ -166,10 +166,8 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
     with n_battles_summary_writer.as_default():
         tf.summary.scalar('n_battles', n_battles, step=episode)
     ep_rewards.append(episode_reward)
-    # if not episode % AGGREGATE_STATS_EVERY or episode == 1:
-    average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    # min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
-    # max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
+    if not episode % AGGREGATE_STATS_EVERY or episode == 1:
+        average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:]) / len(ep_rewards[-AGGREGATE_STATS_EVERY:])
 
     # Save model, but only when min reward is greater or equal a set value
     if not episode % AGGREGATE_STATS_EVERY or episode == 1:

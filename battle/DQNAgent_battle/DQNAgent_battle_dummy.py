@@ -306,6 +306,7 @@ class BlobEnv:
 
         # More complex reward function for unfinished battles.
         # More realistic but also Q values are harder to learn so toggled off by now.
+        # reward = (pokemon_b_hp_start - pokemon_b.current_hp) / pokemon_b_hp_start * 100
         reward = -1.0
         return (pokemon_a, pokemon_b), reward, False, 'continue'
 
