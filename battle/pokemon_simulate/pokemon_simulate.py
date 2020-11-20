@@ -417,7 +417,7 @@ def choose_move(pokemon):
     return random_move(pokemon)
         
         
-def battle(pokemon, pokemon_b):
+def simulate_battle(pokemon, pokemon_b):
     """
     Simulates a single battle against the two provided Pokemon instances. The
     battle is concluded when a pokemon loses all of their HP or both pokemon
