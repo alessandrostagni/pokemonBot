@@ -8,7 +8,7 @@ import random
 import time
 from tqdm import tqdm
 
-from DQNAgent_battle_dummy import *
+from DQNAgent_dummy import *
 
 
 def print_state(current_state, action):

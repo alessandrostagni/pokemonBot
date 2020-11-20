@@ -9,7 +9,7 @@ import tensorflow as tf
 import time
 from tqdm import tqdm
 
-from DQNAgent_battle_dummy import *
+from DQNAgent_dummy import *
 
 
 def print_state(state):
