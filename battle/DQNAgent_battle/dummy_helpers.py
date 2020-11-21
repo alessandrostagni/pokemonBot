@@ -109,7 +109,7 @@ def bot_attack(pokemon_a, pokemon_b):
     if move is not None:
         print(f'Pokemon b chooses {move.name}')
         apply_move(attacker, defender, move)
-    return attacker, defender
+    return defender
 
 
 def decide_first_attacker(pokemon_a, pokemon_b):

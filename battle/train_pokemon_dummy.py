@@ -98,7 +98,6 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
         print('BATTLE INDEX:', env.battle_index + 1)
         print('SAME BATTLE:', env.same_battle)
         print_state(new_state)
-        print_state(new_state)
         print('---------------')
 
         # Transform new continuous state to new discrete state and count reward
