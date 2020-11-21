@@ -1,3 +1,13 @@
+"""
+Code edited from:
+https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
+
+Train the Agent by playing on the emulator -> Super slow and should not be used for training the model.
+Would be amazing to have a fast training mechanism on the emulator, but AHK Script + Memory Viewer is the
+only one I have found so far.
+"""
+
+
 import os
 
 from ahk import AHK
@@ -36,7 +46,7 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 SHOW_PREVIEW = False
 
 ahk = AHK()
-ahk.run_script(open('ahk_scripts/setup.ahk').read())
+ahk.run_script(open('../ahk_scripts/setup.ahk').read())
 
 m = DQNAgent().create_model()
 
@@ -51,9 +61,6 @@ ep_rewards = [-200]
 random.seed(1)
 np.random.seed(1)
 tf.random.set_seed(1)
-# Memory fraction, used mostly when trai8ning multiple agents
-#gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
-#backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
 
 # Create models folder
 if not os.path.isdir('models'):
@@ -62,9 +69,6 @@ if not os.path.isdir('models'):
 # Iterate over episodes
 for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
-    # Update tensorboard step every episode
-    # agent.tensorboard.step = episode
-
     # Restarting episode - reset episode reward and step number
     episode_reward = 0
     step = 1
@@ -72,7 +76,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
     # Reset environment and get initial state
     current_state = env.reset()
 
-# Reset flag and start iterating until episode ends
+    # Reset flag and start iterating until episode ends
     done = False
     while not done:
         # This part stays mostly the same, the change is to query a model for Q values
@@ -91,7 +95,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('Done: ', done)
         print('-------')
 
-        # Transform new continous state to new discrete state and count reward
+        # Transform new continuous state to new discrete state and count reward
         episode_reward += reward
 
         # if SHOW_PREVIEW and not episode % AGGREGATE_STATS_EVERY:
@@ -111,11 +115,9 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:])/len(ep_rewards[-AGGREGATE_STATS_EVERY:])
         min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
         max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
-        # agent.tensorboard.update_stats(reward_avg=average_reward, reward_min=min_reward, reward_max=max_reward, epsilon=epsilon)
 
-        # Save model, but only when min reward is greater or equal a set value
-        #if min_reward >= MIN_REWARD:
-        agent.model.save(f'models/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
+        agent.model.save(f'models/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}'
+                         f'avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
 
     # Decay epsilon
     if epsilon > MIN_EPSILON:

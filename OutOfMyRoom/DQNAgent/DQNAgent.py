@@ -1,18 +1,20 @@
-## Code edited from: https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/ ###
-import os
+"""
+Code edited from:
+https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/ ###
+
+Agent that interacts directly with the VBA emulator of the starting room in Pokemon Blue/Red.
+"""
+
 import random
-import time
+from collections import deque
 
-import tensorflow as tf
 import numpy as np
-
 from ahk import AHK
-
 from keras.models import Sequential, load_model
+
+
 from keras.layers import Dense
 from keras.optimizers import Adam
-from collections import deque
-from keras.callbacks import TensorBoard
 
 ACTION_SPACE_SIZE = 4
 REPLAY_MEMORY_SIZE = 50_000
@@ -32,13 +34,9 @@ class DQNAgent:
 
         # Target network
         self.target_model = self.create_model()
-        #self.target_model.set_weights(self.model.get_weights())
 
         # An array with last n steps for training
         self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
-
-        # Custom tensorboard object
-        #self.tensorboard = ModifiedTensorBoard(log_dir="logs/{}-{}".format(MODEL_NAME, int(time.time())))
 
         # Used to count when to update target network with main network's weights
         self.target_update_counter = 0
@@ -267,14 +265,14 @@ class BlobEnv:
         '''
         self.episode_step = 0
         self.location_memory = set()
-        self.ahk.run_script(open('ahk_scripts/get_state.ahk').read())
-        pos_x = open('states/AX.txt').read()
-        pos_y = open('states/AY.txt').read()
+        self.ahk.run_script(open('../../ahk_scripts/get_state.ahk').read())
+        pos_x = open('../../states/AX.txt').read()
+        pos_y = open('../../states/AY.txt').read()
         observation = (float(pos_x), float(pos_y))
-        map = open('states/AMap.txt').read()
+        map = open('../../states/AMap.txt').read()
         print('Current map id:', map)
         self.location_memory.add(observation)
-        self.ahk.run_script(open('ahk_scripts/reset.ahk').read())
+        self.ahk.run_script(open('../../ahk_scripts/reset.ahk').read())
         '''
         if self.RETURN_IMAGES:
             observation = np.array(self.get_image())
@@ -313,11 +311,11 @@ class BlobEnv:
         if reward == self.FOOD_REWARD or reward == -self.ENEMY_PENALTY or self.episode_step >= 200:
             done = True
         '''''
-        self.ahk.run_script(f'action := {action}\n' + open('ahk_scripts/step.ahk').read())
-        pos_x = open('states/BX.txt').read()
-        pos_y = open('states/BY.txt').read()
+        self.ahk.run_script(f'action := {action}\n' + open('../../ahk_scripts/step.ahk').read())
+        pos_x = open('../../states/BX.txt').read()
+        pos_y = open('../../states/BY.txt').read()
         new_observation = (float(pos_x), float(pos_y))
-        map_id = int(open('states/BMap.txt').read())
+        map_id = int(open('../../states/BMap.txt').read())
         print('Map id after action:', map_id)
         if map_id == 25 or self.episode_step >= 200:
             reward = 0
@@ -334,22 +332,3 @@ class BlobEnv:
             reward = -0.2
 
         return new_observation, reward, done
-
-    '''
-    def render(self):
-        img = self.get_image()
-        img = img.resize((300, 300))  # resizing so we can see our agent in all its glory.
-        cv2.imshow("image", np.array(img))  # show it!
-        cv2.waitKey(1)
-    '''
-
-    # FOR CNN #
-    '''
-    def get_image(self):
-        env = np.zeros((self.SIZE, self.SIZE, 3), dtype=np.uint8)  # starts an rbg of our size
-        env[self.food.x][self.food.y] = self.d[self.FOOD_N]  # sets the food location tile to green color
-        env[self.enemy.x][self.enemy.y] = self.d[self.ENEMY_N]  # sets the enemy location to red
-        env[self.player.x][self.player.y] = self.d[self.PLAYER_N]  # sets the player tile to blue
-        img = Image.fromarray(env, 'RGB')  # reading to rgb. Apparently. Even tho color definitions are bgr. ???
-        return img
-    '''

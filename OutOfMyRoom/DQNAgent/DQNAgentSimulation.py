@@ -1,13 +1,13 @@
-## Code edited from: https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/ ###
+"""
+Code edited from:
+https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
 
-import os
+Agent that interacts in a simulated environment of the starting room in Pokemon Blue/Red.
+"""
+
 import random
-import time
 
-import tensorflow as tf
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import mean_squared_error
 
 from keras.models import Sequential, load_model
 from keras.layers import Dense
@@ -25,7 +25,7 @@ UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
 MAX_STEPS = 200
 
 
-class DQNAgent:
+class DQNAgentSimulation:
 
     def __init__(self):
         # Main model

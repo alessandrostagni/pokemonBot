@@ -11,10 +11,12 @@ from DQNAgent_dummy import *
 N_BATTLES = 10000
 
 agent = DQNAgent()
-agent.load_model(f"MODEL_PATH_HERE")
+# agent.load_model(f"C:\\Users\\darth\\PycharmProjects\\pokemonBot\\battle\\models_battle\\episode_146169_reward___97.00_time__1605901938.model")
+agent.load_model(f"C:\\Users\\darth\\PycharmProjects\\pokemonBot\\"
+                 f"battle\\models_battle\\episode_187587_reward___96.67_time__1605926437.model")
 env = BlobEnv(N_BATTLES, 0)
-# env.create_battles(r'battles_dummy_10000_eval.pickle')
-env.load_battles(r'battles_1000_eval.pickle')
+env.create_battles(r'battles_dummy_10000_multilevel_eval.pickle')
+# env.load_battles(r'battles_10000_eval.pickle')
 current_state = env.reset()
 
 # Run battles

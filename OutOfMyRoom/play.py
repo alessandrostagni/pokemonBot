@@ -1,23 +1,29 @@
-## Code edited from: https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/ ###
+"""
+Code edited from:
+https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/
 
-import os
+Plays on the visual boy advance emulator by reading the memory values.
+Since it runs an ahk script, make sure you have everything set up as explained in the README!
+
+Would be amazing to have a fast interaction mechanism on the emulator, but AHK Script + Memory Viewer is the
+only one I have found so far.
+"""
+
 
 from ahk import AHK
 import numpy as np
 import random
 import tensorflow as tf
-import time
-from tqdm import tqdm
 
-from DQNAgent import DQNAgent
-from DQNAgent import BlobEnv
+from OutOfMyRoom.DQNAgent.DQNAgent import DQNAgent
+from OutOfMyRoom.DQNAgent.DQNAgent import BlobEnv
 
 #  Stats settings
 AGGREGATE_STATS_EVERY = 1  # episodes
 SHOW_PREVIEW = False
 
 ahk = AHK()
-ahk.run_script(open('ahk_scripts/setup.ahk').read())
+ahk.run_script(open('../ahk_scripts/setup.ahk').read())
 
 agent = DQNAgent()
 agent.load_model(
@@ -30,9 +36,6 @@ env = BlobEnv()
 random.seed(1)
 np.random.seed(1)
 tf.random.set_seed(1)
-# Memory fraction, used mostly when training multiple agents
-#gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
-#backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
 
 current_state = env.reset()
 step = 0

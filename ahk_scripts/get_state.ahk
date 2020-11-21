@@ -1,4 +1,4 @@
-; An action definition is expected to be placed here.
+; An action definition is expected to be placed here OR written by a script, see README.
 ConvertBase(InputBase, OutputBase, nptr)    ; Base 2 - 36
 {
     static u := A_IsUnicode ? "_wcstoui64" : "_strtoui64"

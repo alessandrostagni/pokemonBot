@@ -39,7 +39,6 @@ class DQNAgent:
 
         # Target network
         self.target_model = create_model(ACTION_SPACE_SIZE)
-        # self.target_model.set_weights(self.model.get_weights())
 
         # An array with last n steps for training
         self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
@@ -257,7 +256,7 @@ class BlobEnv:
 
         # Other pokemon attacks
         if first_attacker_label == 'a':
-            attacker, defender = bot_attack(pokemon_a, pokemon_b)
+            defender = bot_attack(pokemon_a, pokemon_b)
         else:
             move_feasibility = check_move_feasibility(pokemon_a, action)
             if move_feasibility == 'fail_move':
