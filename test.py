@@ -8,7 +8,7 @@ ahk = AHK()
 
 # Test step AHK script
 action = 1
-ahk.run_script(f'action := {action}\n' + open('ahk_scripts/step.ahk').read())
+ahk.run_script(f'action := {action}\n' + open('OutOfMyRoom/ahk_scripts/step.ahk').read())
 
 # Test get_state AHK script
 

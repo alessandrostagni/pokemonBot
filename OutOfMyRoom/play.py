@@ -23,11 +23,11 @@ AGGREGATE_STATS_EVERY = 1  # episodes
 SHOW_PREVIEW = False
 
 ahk = AHK()
-ahk.run_script(open('../ahk_scripts/setup.ahk').read())
+ahk.run_script(open('ahk_scripts/setup.ahk').read())
 
 agent = DQNAgent()
 agent.load_model(
-    "models_simulation\\Yoyo____92.00max___92.00avg___92.00min__1604357490.model"
+    "..\\models_saved\\OutOfMyRoom\\Yoyo____92.00max___92.00avg___92.00min__1604357490.model"
 )
 
 env = BlobEnv()

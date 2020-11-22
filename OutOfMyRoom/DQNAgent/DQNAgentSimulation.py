@@ -60,7 +60,7 @@ class DQNAgentSimulation:
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
 
-    def train(self, terminal_state, step):
+    def train(self, terminal_state):
         # Start training only if certain number of samples is already saved
         if len(self.replay_memory) < MIN_REPLAY_MEMORY_SIZE:
             return
@@ -77,7 +77,7 @@ class DQNAgentSimulation:
         new_current_states = np.array([transition[3] for transition in minibatch])
         future_qs_list = self.target_model.predict(new_current_states)
 
-        X = []
+        x = []
         y = []
 
         # Now we need to enumerate our batches
@@ -96,15 +96,15 @@ class DQNAgentSimulation:
             current_qs[action] = new_q
 
             # And append to our training data
-            X.append(current_state)
+            x.append(current_state)
             y.append(current_qs)
 
-        X = np.array(X)
+        x = np.array(x)
         y = np.array(y)
 
         # Fit on all samples as one batch, log only on terminal state
         self.model.fit(
-            X, y, batch_size=MINIBATCH_SIZE, verbose=0,
+            x, y, batch_size=MINIBATCH_SIZE, verbose=0,
             shuffle=False, callbacks=[TensorBoard(log_dir='logs')] if terminal_state else None
         )
 
@@ -119,9 +119,9 @@ class DQNAgentSimulation:
 
     # Queries main network for Q values given current observation space (environment state)
     def get_qs(self, state):
-        input = np.array(state).reshape(-1, len(state))
-        print('Input:', input)
-        prediction = self.model.predict(input)[0]
+        input_state = np.array(state).reshape(-1, len(state))
+        print('Input:', input_state)
+        prediction = self.model.predict(input_state)[0]
         print('Prediction:', prediction)
         return prediction
 
@@ -194,8 +194,7 @@ class BlobEnv:
             done = False
             reward = -1.0
         if new_observation == self.final_state:
-            print('FOUND!')
+            print('WON!')
         if self.episode_step >= MAX_STEPS:
             done = True
-        print(self.location_memory)
         return new_observation, reward, done, same

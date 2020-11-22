@@ -94,7 +94,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
 
         # Every step we update replay memory and train main network
         agent.update_replay_memory((current_state, action, reward, new_state, done))
-        agent.train(done, step)
+        agent.train(done)
 
         current_state = new_state
         step += 1

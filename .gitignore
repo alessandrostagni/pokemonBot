@@ -1,7 +1,7 @@
 # Custom
 models_simulation/
 battle/models_battle*
-states/
+OutOfMyRoom/states/
 logs/
 .idea
 graphs

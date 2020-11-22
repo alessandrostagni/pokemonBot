@@ -1,4 +1,4 @@
-; An action definition is expected to be placed here OR written by a script, see README.
+; An action definition is expected to be placed here.
 ConvertBase(InputBase, OutputBase, nptr)    ; Base 2 - 36
 {
     static u := A_IsUnicode ? "_wcstoui64" : "_strtoui64"
@@ -7,6 +7,24 @@ ConvertBase(InputBase, OutputBase, nptr)    ; Base 2 - 36
     value := DllCall("msvcrt.dll\" u, "Str", nptr, "UInt", 0, "UInt", InputBase, "CDECL Int64")
     DllCall("msvcrt.dll\" v, "Int64", value, "Str", s, "UInt", OutputBase, "CDECL")
     return s
+}
+
+Save(label, location) {
+	Send, {Enter}
+	Sleep, 100
+	Send, {Raw} %location%
+	Sleep, 100
+	Send, {Tab}
+	Sleep, 100
+	Send, {1}
+	Sleep, 100
+	Send, {Tab}
+	Sleep, 100
+	Send, {Enter}
+	Sleep, 800
+	Send, {Raw} %label%
+	Sleep, 100
+	Send, {Enter}
 }
 
 OpenMemoryViewer() {
@@ -27,33 +45,19 @@ OpenMemoryViewer() {
 	Send, {Enter}
 }
 
-Save(label, location) {
-	Send, {Enter}
-	Sleep, 100
-	Send, {Raw} %location%
-	Sleep, 100
-	Send, {Tab}
-	Sleep, 100
-	Send, {1}
-	Sleep, 100
-	Send, {Tab}
-	Sleep, 100
-	Send, {Enter}
-	Sleep, 800
-	Send, {Raw} %label%
-	Send, {Enter}
-}
-
 SaveState(label) {
     ;OpenMemoryViewer()
     WinActivate, Memory viewer
+    ;Sleep, 100
     ;Send, {Shift Down}
     ;Sleep, 100
     ;Send, {Tab}
     ;Sleep, 100
     ;Send, {Tab}
+    ;Sleep, 100
     ;Send, {Shift Up}
-    Sleep, 100
+    ;Sleep, 100
+
     WinActivate, Enter address and size ahk_class #32770
     Sleep, 400
     Save(label . "Y", "D361")
@@ -66,13 +70,15 @@ SaveState(label) {
 
     Sleep, 400
 
-    file := FileOpen("C:\Users\darth\Gameboy\states\" . label . "X.DMP", "r")
+    file := FileOpen("states\" . label . "X.DMP", "r")
     X := file.read()
     file.close()
-    file := FileOpen("C:\Users\darth\Gameboy\states\" . label . "Y.DMP", "r")
+    Sleep, 100
+    file := FileOpen("states\" . label . "Y.DMP", "r")
     Y := file.read()
     file.close()
-    file := FileOpen("C:\Users\darth\Gameboy\states\" . label . "Map.DMP", "r")
+    Sleep, 100
+    file := FileOpen("states\" . label . "Map.DMP", "r")
     Map := file.read()
     file.close()
 
@@ -80,13 +86,15 @@ SaveState(label) {
     Y := ConvertBase(10, 16, Asc(Y)) ; Convert String -> Decimal -> Hex
     map := ConvertBase(10, 16, Asc(map)) ; Convert String -> Decimal -> Hex
 
-    file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "X.txt", "w")
+    file := FileOpen("states\" . label . "X.txt", "w")
     file.write(X)
     file.close()
-    file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "Y.txt", "w")
+    Sleep, 100
+    file := FileOpen("states\" . label . "Y.txt", "w")
     file.write(Y)
     file.close()
-    file := FileOpen("C:\Users\darth\PycharmProjects\pokemonBot\states\" . label . "Map.txt", "w")
+    Sleep, 100
+    file := FileOpen("states\" . label . "Map.txt", "w")
     file.write(map)
     file.close()
 
@@ -94,30 +102,34 @@ SaveState(label) {
     WinActivate Memory viewer
     ;Sleep, 100
     ;Send, {Esc}
-    ;Sleep, 100
+    Sleep, 100
     WinActivate VisualBoyAdvance
 }
 
-
 Move(action) {
-    Key := 1
+    Key := 0
     Switch action {
-        Case 1:
+        Case 0:
             Key = Right
-        Case 2:
+        Case 1:
             Key = Left
-        Case 3:
+        Case 2:
             Key = Down
-        Case 4:
+        Case 3:
             Key = Up
     }
     Send, {%Key% Down}
 	Sleep, 50
 	Send, {%Key% Up}
 }
+
 WinActivate VisualBoyAdvance
 Sleep, 100
 SaveState("A")
+Sleep, 100
+Move(action)
+Sleep, 100
+SaveState("B")
 Sleep, 100
 ExitApp
 Return
