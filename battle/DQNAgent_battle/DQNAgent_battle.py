@@ -198,7 +198,7 @@ class BlobEnv:
         else:
             return self.defeat(current_state)
 
-    def step(self, current_state, action):
+    def step_train(self, current_state, action):
         self.episode_step += 1
         pokemon_a = current_state[0]
         pokemon_b = current_state[1]

@@ -14,7 +14,7 @@ def print_state(state):
                 == == =
                 Moves
                 == == =
-                {[(move.name, move.current_pp, move.pp) for move in state[0].moves]}
+                {[(move.name, f'PP: {move.current_pp}/{move.pp}', f'Power: {move.power}') for move in state[0].moves]}
             """)
     print(f"""
                 == == == == == == == == =
@@ -31,5 +31,5 @@ def print_state(state):
                 == == =
                 Moves
                 == == =
-                {[(move.name, move.current_pp, move.pp) for move in state[1].moves]}
+                {[(move.name, f'PP: {move.current_pp}', f'{move.pp}', f'Power: {move.power}') for move in state[1].moves]}
             """)

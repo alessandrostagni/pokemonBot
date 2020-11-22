@@ -94,7 +94,7 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         print('Before fighting:')
         print_state(current_state)
 
-        new_state, reward, done, outcome = env.step(current_state, action)
+        new_state, reward, done, outcome = env.step_train(current_state, action)
 
         print('BATTLE INDEX:', env.battle_index + 1)
 

@@ -10,6 +10,7 @@ Note that the Q values the agent is meant to learn are moving but also lower as 
 import pickle
 from collections import deque
 
+import tensorflow as tf
 from keras.models import load_model
 from keras.callbacks import TensorBoard
 
@@ -49,6 +50,8 @@ class DQNAgent:
         # Used to count when to update target network with main network's weights
         self.target_update_counter = 0
 
+        self.loss_writer = tf.summary.create_file_writer('logs/loss')
+
     def load_model(self, model_path):
         self.model = load_model(model_path)
 
@@ -61,7 +64,7 @@ class DQNAgent:
             transition[4]
         ))
 
-    def train(self, terminal_state):
+    def train(self, terminal_state, episode):
         # Start training only if certain number of samples is already saved
         if len(self.replay_memory) < MIN_REPLAY_MEMORY_SIZE:
             return
@@ -104,10 +107,10 @@ class DQNAgent:
         y = np.array(y)
 
         # Fit on all samples as one batch, log only on terminal state
-        self.model.fit(
-            x, y, batch_size=MINIBATCH_SIZE, verbose=0,
-            shuffle=False, callbacks=[TensorBoard(log_dir='logs')] if terminal_state else None
-        )
+        loss = self.model.train_on_batch(x, y)
+        if terminal_state:
+            with self.loss_writer.as_default():
+                tf.summary.scalar('loss', loss, step=episode)
 
         # Update target network counter every episode
         if terminal_state:
@@ -172,13 +175,17 @@ class BlobEnv:
         else:
             return self.defeat(current_state)
 
-    def step(self, current_state, action):
+    def step_train(self, current_state, action):
         pokemon_a = current_state[0]
         pokemon_b = current_state[1]
         # pokemon_b_hp_start = pokemon_b.current_hp
 
         move_feasibility = check_move_feasibility(pokemon_a, action)
         if move_feasibility == 'fail_move':
+            self.increment_same_battle()
+            current_state = self.battles[self.battle_index]
+            current_state[0].reset()
+            current_state[1].reset()
             return current_state, -100.0, True, 'fail_move'
         elif move_feasibility == 'ok':
             agent_attack(pokemon_a, pokemon_b, action)
@@ -192,20 +199,20 @@ class BlobEnv:
         reward = -1.0
         return (pokemon_a, pokemon_b), reward, False, 'continue'
 
-    def win_train(self, current_state):
+    def increment_same_battle(self):
         if self.same_battle >= MAX_SAME_BATTLE:
             self.battle_index += 1
-            self.same_battle = 1
-            if self.battle_index < len(self.battles):
-                current_state = self.battles[self.battle_index]
-                return current_state, +100.0, True, 'win'
-            else:
+            if self.battle_index >= len(self.battles):
                 self.battle_index = 0
+            self.same_battle = 0
         self.same_battle += 1.0
-        new_state = tuple(current_state)
+
+    def win_train(self, current_state):
+        self.increment_same_battle()
+        current_state = self.battles[self.battle_index]
         current_state[0].reset()
         current_state[1].reset()
-        return new_state, +100.0, True, 'win'
+        return current_state, +100.0, True, 'win'
 
     # METHODS USED FOR EVALUATION ONLY
 

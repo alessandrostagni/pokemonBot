@@ -62,10 +62,9 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
 
     # Restarting episode - reset episode reward and step number
     episode_reward = 0
-    step = 1
+    step = 0
 
     win = 0
-    n_battles = 1
 
     # Reset environment and get initial state
     current_state = env.reset()
@@ -83,22 +82,21 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
             action = np.random.randint(0, len(current_state[0].moves))
             print('RANDOM MOVE:')
 
+        print('BATTLE INDEX:', env.battle_index)
+        print('SAME BATTLE:', env.same_battle)
         print('Action:', action)
         print('Before fighting:')
         print_state(current_state)
 
         old_battle_index = env.battle_index
-        new_state, reward, done, outcome = env.step(current_state, action)
+        new_state, reward, done, outcome = env.step_train(current_state, action)
         new_battle_index = env.battle_index
         if new_battle_index != old_battle_index:
             epsilon = START_EPSILON
             n_battles += 1.0
 
         print('AFTER fighting')
-        print('BATTLE INDEX:', env.battle_index + 1)
-        print('SAME BATTLE:', env.same_battle)
         print_state(new_state)
-        print('---------------')
 
         # Transform new continuous state to new discrete state and count reward
         episode_reward += reward
@@ -108,13 +106,14 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
 
         # Every step we update replay memory and train main network
         agent.update_replay_memory((current_state, action, reward, new_state, done))
-        agent.train(done)
+        agent.train(done, episode)
 
         if outcome == 'win':
             win += 1.0
             print('WIN')
         elif outcome == 'fail_move':
             print('FAIL_MOVE')
+        print('--------------')
 
         current_state = new_state
         step += 1
@@ -126,6 +125,8 @@ for episode in tqdm(range(START_EPISODE, EPISODES + 1), ascii=True, unit='episod
         tf.summary.scalar('epsilon', epsilon, step=episode)
     with win_summary_writer.as_default():
         tf.summary.scalar('win', win, step=episode)
+    with n_battles_summary_writer.as_default():
+        tf.summary.scalar('n_battles', n_battles, step=episode)
     ep_rewards.append(episode_reward)
     if not episode % AGGREGATE_STATS_EVERY or episode == 1:
         average_reward = sum(ep_rewards[-AGGREGATE_STATS_EVERY:]) / len(ep_rewards[-AGGREGATE_STATS_EVERY:])
